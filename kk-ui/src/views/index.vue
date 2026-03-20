@@ -369,7 +369,17 @@
 
 
 <script>
+
 import CommentDialog from '@/views/outfit/outfit/components/CommentDialog.vue'
+import {
+  getPosts,
+  createPost,
+  togglePostLike,
+  togglePostCollect,
+  getComments,
+  addComment,
+  getCurrentUser
+} from '@/api/outfitApi'
 
 export default {
   name: "Index",
