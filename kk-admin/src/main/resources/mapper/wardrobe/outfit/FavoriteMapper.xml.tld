@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.outfit.mapper.FavoriteMapper">
+
+    <resultMap type="com.kk.outfit.domain.Favorite" id="FavoriteResult">
+        <result property="favoriteId" column="favorite_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="outfitId" column="outfit_id"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap type="com.kk.outfit.domain.Outfit" id="OutfitResult" extends="com.kk.outfit.mapper.OutfitMapper.OutfitResult">
+    </resultMap>
+
+    <select id="selectFavoriteByUserIdAndOutfitId" resultMap="FavoriteResult">
+        select favorite_id, user_id, outfit_id, create_time
+        from clothing_favorite
+        where user_id = #{userId} and outfit_id = #{outfitId}
+    </select>
+
+    <insert id="insertFavorite" parameterType="com.kk.outfit.domain.Favorite" useGeneratedKeys="true" keyProperty="favoriteId">
+        insert into clothing_favorite (user_id, outfit_id, create_time)
+        values (#{userId}, #{outfitId}, sysdate())
+    </insert>
+
+    <delete id="deleteFavorite">
+        delete from clothing_favorite where user_id = #{userId} and outfit_id = #{outfitId}
+    </delete>
+
+    <select id="countFavoriteByOutfitId" resultType="int">
+        select count(*) from clothing_favorite where outfit_id = #{outfitId}
+    </select>
+
+    <select id="selectFavoriteOutfitsByUserId" resultMap="OutfitResult">
+        select o.* from outfit o
+                            inner join clothing_favorite f on o.outfit_id = f.outfit_id
+        where f.user_id = #{userId} and o.del_flag = '0'
+        order by f.create_time desc
+    </select>
+</mapper>

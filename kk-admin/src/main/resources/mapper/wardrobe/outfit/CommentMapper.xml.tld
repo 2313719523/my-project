@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.outfit.mapper.CommentMapper">
+
+    <resultMap type="com.kk.outfit.domain.Comment" id="CommentResult">
+        <result property="commentId" column="comment_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="outfitId" column="outfit_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="userName" column="user_name"/>
+        <result property="parentUserName" column="parent_user_name"/>
+    </resultMap>
+
+    <select id="selectCommentByOutfitId" resultMap="CommentResult">
+        select c.*, u.user_name,
+               (select user_name from sys_user where user_id = c.parent_id) as parent_user_name
+        from clothing_comment c
+                 left join sys_user u on c.user_id = u.user_id
+        where c.outfit_id = #{outfitId}
+        order by c.parent_id asc, c.create_time desc
+    </select>
+
+    <insert id="insertComment" parameterType="com.kk.outfit.domain.Comment" useGeneratedKeys="true" keyProperty="commentId">
+        insert into clothing_comment (user_id, outfit_id, parent_id, content, create_time)
+        values (#{userId}, #{outfitId}, #{parentId}, #{content}, sysdate())
+    </insert>
+
+    <delete id="deleteComment">
+        delete from clothing_comment where comment_id = #{commentId}
+    </delete>
+
+    <delete id="deleteCommentByOutfitId">
+        delete from clothing_comment where outfit_id = #{outfitId}
+    </delete>
+
+    <select id="selectCommentById" resultMap="CommentResult">
+        select * from clothing_comment where comment_id = #{commentId}
+    </select>
+</mapper>

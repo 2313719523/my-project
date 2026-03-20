@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.wardrobe.mapper.WardrobeItemMapper">
+
+    <resultMap type="WardrobeItem" id="WardrobeItemResult">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="category" column="category"/>
+        <result property="color" column="color"/>
+        <result property="season" column="season"/>
+        <result property="price" column="price"/>
+        <result property="isCommon" column="is_common"/>
+        <result property="addTime" column="add_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectWardrobeItemVo">
+        select id, name, category, color, season, price, is_common, add_time, remark,
+               create_by, create_time, update_by, update_time
+        from wardrobe_item
+    </sql>
+
+    <select id="selectWardrobeItemList" parameterType="WardrobeItem" resultMap="WardrobeItemResult">
+        <include refid="selectWardrobeItemVo"/>
+        <where>
+            <if test="name != null and name != ''"> AND name like concat('%', #{name}, '%')</if>
+            <if test="category != null and category != ''"> AND category = #{category}</if>
+            <if test="color != null and color != ''"> AND color = #{color}</if>
+            <if test="season != null and season != ''"> AND season = #{season}</if>
+            <if test="isCommon != null"> AND is_common = #{isCommon}</if>
+        </where>
+        order by add_time desc
+    </select>
+
+    <!-- 其他CRUD SQL 省略... -->
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.outfit.mapper.LikeMapper">
+
+    <resultMap type="com.kk.outfit.domain.Like" id="LikeResult">
+        <result property="likeId" column="like_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="outfitId" column="outfit_id"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectLikeByUserIdAndOutfitId" resultMap="LikeResult">
+        select like_id, user_id, outfit_id, create_time
+        from clothing_like
+        where user_id = #{userId} and outfit_id = #{outfitId}
+    </select>
+
+    <insert id="insertLike" parameterType="com.kk.outfit.domain.Like" useGeneratedKeys="true" keyProperty="likeId">
+        insert into clothing_like (user_id, outfit_id, create_time)
+        values (#{userId}, #{outfitId}, sysdate())
+    </insert>
+
+    <delete id="deleteLike">
+        delete from clothing_like where user_id = #{userId} and outfit_id = #{outfitId}
+    </delete>
+
+    <select id="countLikeByOutfitId" resultType="int">
+        select count(*) from clothing_like where outfit_id = #{outfitId}
+    </select>
+</mapper>

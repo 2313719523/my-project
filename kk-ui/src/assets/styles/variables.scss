@@ -1,0 +1,34 @@
+// ===== 基础颜色补丁（修复所有 Sass 变量未定义报错） =====
+$blue: #7ec8e3;
+$light-blue: #98c3c7;
+$red: #C03639;
+$pink: #E65D6E;
+$green: #30B08F;
+$tiffany: #4AB7BD; // 修复你刚才的报错
+$yellow: #FEC171;
+$panGreen: #30B08F;
+
+// ===== 奢华感核心配色 (新皮肤) =====
+$bone: #f8f5f0;      // 羊绒白
+$espresso: #2c2a26;  // 深咖黑
+$taupe: #8c8379;     // 柔灰褐
+
+// 默认菜单主题风格变量
+$base-menu-color: $taupe;              
+$base-menu-color-active: $espresso;    
+$base-menu-background: $bone;          
+$base-logo-title-color: $espresso;     
+
+$base-sub-menu-background: #fdfcfb;    
+$base-sub-menu-hover: rgba(255, 255, 255, 0.8); 
+
+// 布局
+$base-sidebar-width: 240px;
+
+// 导出给 JS 使用
+:export {
+  menuText: $base-menu-color;
+  menuActiveText: $base-menu-color-active;
+  menuBg: $base-menu-background;
+  subMenuBg: $base-sub-menu-background;
+}

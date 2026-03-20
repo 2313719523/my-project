@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.outfit.mapper.OutfitMapper">
+    
+    <resultMap type="Outfit" id="OutfitResult">
+        <result property="outfitId"    column="outfit_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="title"    column="title"    />
+        <result property="description"    column="description"    />
+        <result property="styleTag"    column="style_tag"    />
+        <result property="sceneTag"    column="scene_tag"    />
+        <result property="images"    column="images"    />
+        <result property="viewCount"    column="view_count"    />
+        <result property="likeCount"    column="like_count"    />
+        <result property="collectCount"    column="collect_count"    />
+        <result property="status"    column="status"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectOutfitVo">
+        select outfit_id, user_id, title, description, style_tag, scene_tag, images, view_count, like_count, collect_count, status, del_flag, create_by, create_time, update_by, update_time from outfit
+    </sql>
+
+    <select id="selectOutfitList" parameterType="Outfit" resultMap="OutfitResult">
+        <include refid="selectOutfitVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="title != null  and title != ''"> and title = #{title}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="styleTag != null  and styleTag != ''"> and style_tag = #{styleTag}</if>
+            <if test="sceneTag != null  and sceneTag != ''"> and scene_tag = #{sceneTag}</if>
+            <if test="images != null  and images != ''"> and images = #{images}</if>
+            <if test="viewCount != null "> and view_count = #{viewCount}</if>
+            <if test="likeCount != null "> and like_count = #{likeCount}</if>
+            <if test="collectCount != null "> and collect_count = #{collectCount}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectOutfitByOutfitId" parameterType="Long" resultMap="OutfitResult">
+        <include refid="selectOutfitVo"/>
+        where outfit_id = #{outfitId}
+    </select>
+
+    <insert id="insertOutfit" parameterType="Outfit" useGeneratedKeys="true" keyProperty="outfitId">
+        insert into outfit
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="title != null">title,</if>
+            <if test="description != null">description,</if>
+            <if test="styleTag != null">style_tag,</if>
+            <if test="sceneTag != null">scene_tag,</if>
+            <if test="images != null">images,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="likeCount != null">like_count,</if>
+            <if test="collectCount != null">collect_count,</if>
+            <if test="status != null">status,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="title != null">#{title},</if>
+            <if test="description != null">#{description},</if>
+            <if test="styleTag != null">#{styleTag},</if>
+            <if test="sceneTag != null">#{sceneTag},</if>
+            <if test="images != null">#{images},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="likeCount != null">#{likeCount},</if>
+            <if test="collectCount != null">#{collectCount},</if>
+            <if test="status != null">#{status},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOutfit" parameterType="Outfit">
+        update outfit
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="styleTag != null">style_tag = #{styleTag},</if>
+            <if test="sceneTag != null">scene_tag = #{sceneTag},</if>
+            <if test="images != null">images = #{images},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            <if test="collectCount != null">collect_count = #{collectCount},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where outfit_id = #{outfitId}
+    </update>
+
+    <delete id="deleteOutfitByOutfitId" parameterType="Long">
+        delete from outfit where outfit_id = #{outfitId}
+    </delete>
+
+    <delete id="deleteOutfitByOutfitIds" parameterType="String">
+        delete from outfit where outfit_id in
+        <foreach item="outfitId" collection="array" open="(" separator="," close=")">
+            #{outfitId}
+        </foreach>
+    </delete>
+</mapper>
