@@ -27,7 +27,7 @@
         <div class="avatar-wrapper">
           <div class="user-meta">
             <span class="user-nickname">{{ nickName }}</span>
-            <span class="user-status">PREMIUM</span>
+            <span class="user-status">PRODUCE</span>
           </div>
           <img :src="avatar" class="user-avatar">
         </div>

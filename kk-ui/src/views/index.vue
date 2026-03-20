@@ -6,21 +6,44 @@
         <h1 class="logo">每日穿搭</h1>
       </div>
       <div class="header-search">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索穿搭、用户、品牌..."
-          prefix-icon="el-icon-search"
-          size="medium"
-          clearable
-        />
+  <el-autocomplete
+    v-model="searchKeyword"
+    :fetch-suggestions="querySearch"
+    placeholder="搜索穿搭、用户、品牌..."
+    prefix-icon="el-icon-search"
+    size="medium"
+    clearable
+    @select="handleSelect"
+    @keyup.enter.native="handleSearch"
+  >
+    <template slot-scope="{ item }">
+      <div class="search-suggestion">
+        <i :class="item.icon"></i>
+        <span>{{ item.value }}</span>
       </div>
+    </template>
+  </el-autocomplete>
+  <el-button 
+    type="primary" 
+    icon="el-icon-search" 
+    size="medium" 
+    circle
+    @click="handleSearch"
+    :loading="isSearching"
+  ></el-button>
+</div>
       <div class="header-right">
         <el-button type="primary" icon="el-icon-upload" @click="showPublishDialog = true">
           发布穿搭
         </el-button>
-        <el-badge :value="3" class="message-badge">
-          <el-button icon="el-icon-message" circle size="small"></el-button>
-        </el-badge>
+        <el-badge :value="4" class="message-badge">
+          <el-button 
+             icon="el-icon-message" 
+                    circle 
+                    size="small"
+              @click="handleMessage"
+          ></el-button>
+</el-badge>
         <el-avatar :src="avatar" size="medium"></el-avatar>
       </div>
     </div>
@@ -49,12 +72,12 @@
         </div>
       </el-col>
       <el-col :span="18">
-        <div class="ai-recommend-card">
-          <i class="el-icon-magic-stick"></i>
-          <span class="label">AI穿搭推荐：</span>
-          <span class="content">浅杏色针织衫 + 深灰九分裤</span>
-          <el-button type="text" icon="el-icon-refresh" @click="refreshRecommend">换一换</el-button>
-        </div>
+      <div class="ai-recommend-card">
+  <i class="el-icon-magic-stick"></i>
+  <span class="label">AI穿搭推荐：</span>
+  <span class="content">{{ currentRecommendation }}</span>
+  <el-button type="text" icon="el-icon-refresh" @click="refreshRecommend">换一换</el-button>
+</div>
       </el-col>
     </el-row>
 
@@ -353,22 +376,87 @@ export default {
   components: {
     CommentDialog  
   },
-  data() {
-    return {
-      searchKeyword: '',
-      activeCategory: 'recommend',
-      showPublishDialog: false,
-      publishForm: {
-        title: '',
-        description: '',
-        tags: []
+ data() {
+  return {
+    searchKeyword: '',
+    activeCategory: 'recommend',
+    showPublishDialog: false,
+    publishForm: {
+      title: '',
+      description: '',
+      tags: []
+    },
+    imageList: [],
+    uploadImage: null,
+    loading: false,
+    avatar: '/images/头像8.png',
+    
+    // 搜索相关
+    searchResults: [],
+    isSearching: false,
+    searchHistory: [],
+    
+    // AI穿搭推荐
+    currentRecommendation: '浅杏色针织衫 + 深灰九分裤', // 默认推荐
+    
+    // 存储所有分类的帖子数据
+    categoryPosts: {
+      recommend: {
+        left: [],
+        center: [],
+        right: []
       },
-      imageList: [], // 上传的图片列表
-      uploadImage: null, // 存储上传的图片数据
-      loading: false,
-      avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-      
-      leftPosts: [
+      latest: {
+        left: [],
+        center: [],
+        right: []
+      },
+      business: {
+        left: [],
+        center: [],
+        right: []
+      },
+      casual: {
+        left: [],
+        center: [],
+        right: []
+      },
+      sport: {
+        left: [],
+        center: [],
+        right: []
+      }
+    },
+    
+    // 当前显示的帖子（根据activeCategory从categoryPosts中获取）
+    leftPosts: [],
+    centerPosts: [],
+    rightPosts: [],
+    
+    showCommentDialog: false,
+    currentCommentPost: null,
+    publishCounter: 0
+  };
+},
+  computed: {
+    canPublish() {
+      return this.publishForm.title && 
+             this.publishForm.description && 
+             this.imageList.length > 0;
+    }
+  },
+  created() {
+    // 初始化所有分类的帖子数据
+    this.initCategoryPosts();
+    // 显示默认分类（推荐）
+    this.showCategoryPosts('recommend');
+  },
+  methods: {
+  // 初始化各分类的帖子数据
+  initCategoryPosts() {
+    // 推荐分类的帖子
+    this.categoryPosts.recommend = {
+      left: [
         {
           id: 1,
           image: '/images/通勤风简约.png',
@@ -382,38 +470,14 @@ export default {
           isCollected: false,
           multi: true,
           imageCount: 3,
+          category: 'recommend',
           commentList: [
             {
               id: 101,
-              user: {
-                name: '明天不上班',
-                avatar: '/images/头像2.png'
-              },
+              user: { name: '明天不上班', avatar: '/images/头像2.png' },
               content: '第一套有链接吗姐妹！求求了！！',
               time: '2小时前',
               likes: 24,
-              isLiked: false
-            },
-            {
-              id: 102,
-              user: {
-                name: '小个子穿搭',
-                avatar: '/images/头像3.png'
-              },
-              content: '158能穿吗 会不会拖地啊',
-              time: '1小时前',
-              likes: 8,
-              isLiked: false
-            },
-            {
-              id: 103,
-              user: {
-                name: '饭饭',
-                avatar: '/images/头像4.png'
-              },
-              content: '码住！明天上班就这么穿',
-              time: '30分钟前',
-              likes: 15,
               isLiked: false
             }
           ]
@@ -429,45 +493,20 @@ export default {
           comments: 123,
           isLiked: false,
           isCollected: false,
+          category: 'recommend',
           commentList: [
             {
               id: 401,
-              user: {
-                name: '今天星期几',
-                avatar: '/images/头像2.png'
-              },
+              user: { name: '今天星期几', avatar: '/images/头像2.png' },
               content: '被种草了！！姐妹好会穿',
               time: '5分钟前',
               likes: 12,
-              isLiked: false
-            },
-            {
-              id: 402,
-              user: {
-                name: '别管我了',
-                avatar: '/images/头像3.png'
-              },
-              content: '图三西装有链接吗！！急急急',
-              time: '10分钟前',
-              likes: 5,
-              isLiked: false
-            },
-            {
-              id: 403,
-              user: {
-                name: '想吃火锅',
-                avatar: '/images/头像1.png'
-              },
-              content: '啊啊啊好好看 求这一整套链接！！',
-              time: '刚刚',
-              likes: 0,
               isLiked: false
             }
           ]
         }
       ],
-      
-      centerPosts: [
+      center: [
         {
           id: 2,
           image: '/images/简约黑白.png',
@@ -479,27 +518,14 @@ export default {
           comments: 67,
           isLiked: false,
           isCollected: false,
+          category: 'recommend',
           commentList: [
             {
               id: 201,
-              user: {
-                name: '不想上班',
-                avatar: '/images/头像3.png'
-              },
+              user: { name: '不想上班', avatar: '/images/头像3.png' },
               content: '黑白yyds！永远不会出错',
               time: '15分钟前',
               likes: 18,
-              isLiked: false
-            },
-            {
-              id: 202,
-              user: {
-                name: '小羊',
-                avatar: '/images/头像4.png'
-              },
-              content: '图二裤子有🔗吗姐妹',
-              time: '25分钟前',
-              likes: 6,
               isLiked: false
             }
           ]
@@ -515,45 +541,20 @@ export default {
           comments: 156,
           isLiked: false,
           isCollected: false,
+          category: 'recommend',
           commentList: [
             {
               id: 501,
-              user: {
-                name: '150小个子',
-                avatar: '/images/头像1.png'
-              },
+              user: { name: '150小个子', avatar: '/images/头像1.png' },
               content: '本矮子星人狂喜！！立马收藏',
               time: '8分钟前',
               likes: 43,
-              isLiked: false
-            },
-            {
-              id: 502,
-              user: {
-                name: '减肥ing',
-                avatar: '/images/头像2.png'
-              },
-              content: '正好最近在减肥 学起来！',
-              time: '20分钟前',
-              likes: 12,
-              isLiked: false
-            },
-            {
-              id: 503,
-              user: {
-                name: '今天瘦了吗',
-                avatar: '/images/头像3.png'
-              },
-              content: '@我朋友 进来学穿搭！！',
-              time: '40分钟前',
-              likes: 5,
               isLiked: false
             }
           ]
         }
       ],
-      
-      rightPosts: [
+      right: [
         {
           id: 3,
           image: '/images/实用白衬衫.png',
@@ -565,38 +566,14 @@ export default {
           comments: 98,
           isLiked: false,
           isCollected: false,
+          category: 'recommend',
           commentList: [
             {
               id: 301,
-              user: {
-                name: '抠搜打工人',
-                avatar: '/images/头像2.png'
-              },
+              user: { name: '抠搜打工人', avatar: '/images/头像2.png' },
               content: '白衬衫真的百搭！！衣柜必备',
               time: '20分钟前',
               likes: 16,
-              isLiked: false
-            },
-            {
-              id: 302,
-              user: {
-                name: '想吃烤肉',
-                avatar: '/images/头像3.png'
-              },
-              content: '第七套绝了！正好周末约会穿',
-              time: '35分钟前',
-              likes: 9,
-              isLiked: false
-            },
-            {
-              id: 303,
-              user: {
-                name: '早起困难户',
-                avatar: '/images/头像4.png'
-              },
-              content: '马住马住 再也不愁穿啥了',
-              time: '50分钟前',
-              likes: 21,
               isLiked: false
             }
           ]
@@ -612,262 +589,797 @@ export default {
           comments: 89,
           isLiked: false,
           isCollected: false,
+          category: 'recommend',
           commentList: [
             {
               id: 601,
-              user: {
-                name: '恋爱ing',
-                avatar: '/images/头像4.png'
-              },
+              user: { name: '恋爱ing', avatar: '/images/头像4.png' },
               content: '刚和男朋友分手 看到这个又想谈恋爱了',
               time: '12分钟前',
               likes: 34,
               isLiked: false
-            },
+            }
+          ]
+        }
+      ]
+    };
+    
+    // 通勤风分类的帖子
+    this.categoryPosts.business = {
+      left: [
+        {
+          id: 101,
+          image: '/images/通勤风简约.png',
+          title: '职场通勤｜简约气质穿搭',
+          tags: ['通勤风', '职场'],
+          avatar: '/images/头像1.png',
+          username: '职场穿搭指南',
+          likes: 567,
+          comments: 89,
+          isLiked: false,
+          isCollected: false,
+          category: 'business',
+          commentList: [
             {
-              id: 602,
-              user: {
-                name: '不想起床',
-                avatar: '/images/头像5.png'
-              },
-              content: '求裙子！周末约会正需要！！',
-              time: '25分钟前',
-              likes: 11,
-              isLiked: false
-            },
-            {
-              id: 603,
-              user: {
-                name: '单身狗',
-                avatar: '/images/头像2.png'
-              },
-              content: '虽然没有约会 但先收藏了哈哈哈',
+              id: 1101,
+              user: { name: '打工人', avatar: '/images/头像2.png' },
+              content: '太适合上班穿了！',
               time: '1小时前',
-              likes: 28,
-              isLiked: false
-            },
-            {
-              id: 604,
-              user: {
-                name: '甜甜圈',
-                avatar: '/images/头像3.png'
-              },
-              content: '@闺蜜 我们周末穿这个去拍照！',
-              time: '50分钟前',
-              likes: 6,
+              likes: 23,
               isLiked: false
             }
           ]
         }
       ],
-      
-      showCommentDialog: false,
-      currentCommentPost: null,
-      publishCounter: 0
+      center: [
+        {
+          id: 102,
+          image: '/images/通勤风西装.png',
+          title: '西装穿搭｜一周不重样',
+          tags: ['通勤风', '西装'],
+          avatar: '/images/头像4.png',
+          username: '职场丽人',
+          likes: 432,
+          comments: 56,
+          isLiked: false,
+          isCollected: false,
+          category: 'business',
+          commentList: [
+            {
+              id: 1102,
+              user: { name: '周一不想上班', avatar: '/images/头像3.png' },
+              content: '图三的西装有链接吗',
+              time: '3小时前',
+              likes: 12,
+              isLiked: false
+            }
+          ]
+        }
+      ],
+      right: [
+        {
+          id: 103,
+          image: '/images/显高.png',
+          title: '显高显瘦｜小个子通勤穿搭',
+          tags: ['通勤风', '小个子'],
+          avatar: '/images/头像5.png',
+          username: '小个子穿搭',
+          likes: 789,
+          comments: 134,
+          isLiked: false,
+          isCollected: false,
+          category: 'business',
+          commentList: [
+            {
+              id: 1103,
+              user: { name: '158小个子', avatar: '/images/头像6.png' },
+              content: '终于找到适合小个子的通勤装了！',
+              time: '30分钟前',
+              likes: 45,
+              isLiked: false
+            }
+          ]
+        }
+      ]
     };
+    
+    // 休闲风分类的帖子
+    this.categoryPosts.casual = {
+      left: [
+        {
+          id: 201,
+          image: '/images/简约黑白.png',
+          title: '周末休闲｜舒服又时髦',
+          tags: ['休闲风', '周末'],
+          avatar: '/images/头像2.png',
+          username: '休闲穿搭',
+          likes: 345,
+          comments: 45,
+          isLiked: false,
+          isCollected: false,
+          category: 'casual',
+          commentList: [
+            {
+              id: 1201,
+              user: { name: '周末去哪玩', avatar: '/images/头像3.png' },
+              content: '这套逛街穿正合适',
+              time: '2小时前',
+              likes: 12,
+              isLiked: false
+            }
+          ]
+        }
+      ],
+      center: [
+        {
+          id: 202,
+          image: '/images/温柔甜美.png',
+          title: '约会休闲｜甜美温柔风',
+          tags: ['休闲风', '约会'],
+          avatar: '/images/头像6.png',
+          username: '约会穿搭',
+          likes: 678,
+          comments: 98,
+          isLiked: false,
+          isCollected: false,
+          category: 'casual',
+          commentList: [
+            {
+              id: 1202,
+              user: { name: '恋爱中', avatar: '/images/头像4.png' },
+              content: '男朋友说这套很好看！',
+              time: '1天前',
+              likes: 67,
+              isLiked: false
+            }
+          ]
+        }
+      ],
+      right: [
+        {
+          id: 203,
+          image: '/images/实用白衬衫.png',
+          title: '白衬衫的休闲穿法',
+          tags: ['休闲风', '白衬衫'],
+          avatar: '/images/头像3.png',
+          username: '极简生活',
+          likes: 234,
+          comments: 34,
+          isLiked: false,
+          isCollected: false,
+          category: 'casual',
+          commentList: [
+            {
+              id: 1203,
+              user: { name: '简约控', avatar: '/images/头像5.png' },
+              content: '白衬衫真的百搭',
+              time: '5小时前',
+              likes: 8,
+              isLiked: false
+            }
+          ]
+        }
+      ]
+    };
+    
+    // 运动风分类的帖子
+    this.categoryPosts.sport = {
+      left: [
+        {
+          id: 301,
+          image: '/images/显高.png',
+          title: '运动休闲｜健身房穿搭',
+          tags: ['运动风', '健身'],
+          avatar: '/images/头像5.png',
+          username: '健身穿搭',
+          likes: 456,
+          comments: 67,
+          isLiked: false,
+          isCollected: false,
+          category: 'sport',
+          commentList: [
+            {
+              id: 1301,
+              user: { name: '健身小白', avatar: '/images/头像4.png' },
+              content: '这套瑜伽服有链接吗',
+              time: '4小时前',
+              likes: 15,
+              isLiked: false
+            }
+          ]
+        }
+      ],
+      center: [
+        {
+          id: 302,
+          image: '/images/温柔甜美.png',
+          title: '运动风也可以很甜美',
+          tags: ['运动风', '甜美'],
+          avatar: '/images/头像6.png',
+          username: '运动女孩',
+          likes: 567,
+          comments: 78,
+          isLiked: false,
+          isCollected: false,
+          category: 'sport',
+          commentList: [
+            {
+              id: 1302,
+              user: { name: '跑步爱好者', avatar: '/images/头像1.png' },
+              content: '运动装也能这么好看',
+              time: '2小时前',
+              likes: 23,
+              isLiked: false
+            }
+          ]
+        }
+      ],
+      right: [
+        {
+          id: 303,
+          image: '/images/简约黑白.png',
+          title: '黑白运动风｜经典搭配',
+          tags: ['运动风', '黑白'],
+          avatar: '/images/头像2.png',
+          username: '运动博主',
+          likes: 789,
+          comments: 123,
+          isLiked: false,
+          isCollected: false,
+          category: 'sport',
+          commentList: [
+            {
+              id: 1303,
+              user: { name: '黑白控', avatar: '/images/头像3.png' },
+              content: '黑白配永远的神',
+              time: '1小时前',
+              likes: 34,
+              isLiked: false
+            }
+          ]
+        }
+      ]
+    };
+    
+    // 最新分类（复制推荐的数据）
+    this.categoryPosts.latest = JSON.parse(JSON.stringify(this.categoryPosts.recommend));
+    this.categoryPosts.latest.left.forEach(item => item.id += 1000);
+    this.categoryPosts.latest.center.forEach(item => item.id += 1000);
+    this.categoryPosts.latest.right.forEach(item => item.id += 1000);
   },
-  computed: {
-    // 计算是否可以发布
-    canPublish() {
-      return this.publishForm.title && 
-             this.publishForm.description && 
-             this.imageList.length > 0;
+  
+  // 显示指定分类的帖子
+  showCategoryPosts(category) {
+    const categoryData = this.categoryPosts[category];
+    if (categoryData) {
+      this.leftPosts = categoryData.left || [];
+      this.centerPosts = categoryData.center || [];
+      this.rightPosts = categoryData.right || [];
     }
   },
-  methods: {
-    handleCategoryChange() {
-      this.$message.success(`切换到${this.activeCategory}分类`);
-    },
+  
+  // 消息通知
+  handleMessage() {
+    const h = this.$createElement;
     
-    refreshRecommend() {
-      this.$message.success('已为您刷新穿搭推荐');
-    },
-    
-    toggleLike(item) {
-      item.isLiked = !item.isLiked;
-      if (item.isLiked) {
-        item.likes++;
-        this.$message.success('点赞成功');
-      } else {
-        item.likes--;
-        this.$message.info('已取消点赞');
+    // 消息列表数据
+    const messages = [
+      {
+        id: 1,
+        type: 'like',
+        icon: 'el-icon-star-on',
+        iconColor: '#ff6b6b',
+        content: '时尚小咖 赞了你的穿搭',
+        time: '5分钟前',
+        avatar: '/images/头像1.png'
+      },
+      {
+        id: 2,
+        type: 'comment',
+        icon: 'el-icon-chat-dot-round',
+        iconColor: '#409eff',
+        content: '职场丽人 评论了你的帖子：这套真好看！',
+        time: '1小时前',
+        avatar: '/images/头像4.png'
+      },
+      {
+        id: 3,
+        type: 'follow',
+        icon: 'el-icon-user',
+        iconColor: '#67c23a',
+        content: '搭配师小林 关注了你',
+        time: '3小时前',
+        avatar: '/images/头像2.png'
+      },
+      {
+        id: 4,
+        type: 'system',
+        icon: 'el-icon-bell',
+        iconColor: '#e6a23c',
+        content: '系统通知：你的穿搭被推荐到首页',
+        time: '昨天',
+        avatar: ''
       }
-    },
+    ];
     
-    toggleCollect(item) {
-      item.isCollected = !item.isCollected;
-      if (item.isCollected) {
-        this.$message.success('收藏成功');
-      } else {
-        this.$message.info('已取消收藏');
+    // 构建消息列表
+    const messageItems = messages.map(msg => 
+      h('div', {
+        class: 'message-item',
+        on: {
+          click: () => {
+            this.$msgbox.close();
+            this.$message.info(`查看消息：${msg.content}`);
+          }
+        }
+      }, [
+        msg.avatar ? 
+          h('el-avatar', {
+            props: { src: msg.avatar, size: 'small' }
+          }) : 
+          h('div', { class: 'message-icon ' + msg.type }, [
+            h('i', { class: msg.icon, style: { color: msg.iconColor } })
+          ]),
+        h('div', { class: 'message-content' }, [
+          h('div', { class: 'message-text' }, msg.content),
+          h('div', { class: 'message-time' }, msg.time)
+        ])
+      ])
+    );
+    
+    // 添加查看全部按钮
+    messageItems.push(
+      h('div', { class: 'message-footer' }, [
+        h('el-button', {
+          props: { type: 'text', size: 'small' },
+          on: {
+            click: () => {
+              this.$msgbox.close();
+              this.$message.info('查看全部消息');
+            }
+          }
+        }, '查看全部消息')
+      ])
+    );
+    
+    this.$msgbox({
+      title: '消息通知',
+      message: h('div', { class: 'message-list' }, messageItems),
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: '关闭',
+      customClass: 'message-dialog'
+    }).catch(() => {});
+  },
+  
+  // 搜索方法
+  handleSearch() {
+    if (!this.searchKeyword.trim()) {
+      this.$message.warning('请输入搜索关键词');
+      return;
+    }
+    
+    this.isSearching = true;
+    const keyword = this.searchKeyword.toLowerCase().trim();
+    
+    // 保存搜索历史
+    if (!this.searchHistory.includes(keyword)) {
+      this.searchHistory.unshift(keyword);
+      if (this.searchHistory.length > 5) {
+        this.searchHistory.pop();
       }
-    },
+    }
     
-    openCommentDialog(item) {
-      console.log('打开评论:', item)
-      this.currentCommentPost = item
-      this.showCommentDialog = true
-    },
+    // 搜索结果
+    const results = [];
     
-    handleAddComment(content) {
-      if (!this.currentCommentPost || !content.trim()) return;
-      
-      const newComment = {
-        id: Date.now(),
-        user: {
-          name: '当前用户',
-          avatar: this.avatar || '/images/默认头像.png'
-        },
-        content: content,
-        time: '刚刚',
-        likes: 0,
-        isLiked: false
-      };
-      
-      if (!this.currentCommentPost.commentList) {
-        this.$set(this.currentCommentPost, 'commentList', []);
-      }
-      
-      this.currentCommentPost.commentList.push(newComment);
-      this.currentCommentPost.comments++;
-      
-      this.$message.success('评论发表成功');
-    },
+    // 遍历所有分类的所有帖子
+    Object.keys(this.categoryPosts).forEach(category => {
+      ['left', 'center', 'right'].forEach(column => {
+        this.categoryPosts[category][column].forEach(post => {
+          // 搜索标题、标签、用户名
+          const matchesTitle = post.title.toLowerCase().includes(keyword);
+          const matchesTags = post.tags.some(tag => tag.toLowerCase().includes(keyword));
+          const matchesUsername = post.username.toLowerCase().includes(keyword);
+          
+          if (matchesTitle || matchesTags || matchesUsername) {
+            results.push({
+              ...post,
+              matchType: matchesTitle ? '标题' : (matchesTags ? '标签' : '用户'),
+              category: category
+            });
+          }
+        });
+      });
+    });
     
-    // 处理图片变更
-    handleImageChange(file, fileList) {
-      this.imageList = fileList;
-      // 创建本地预览URL
-      if (file.raw) {
-        this.uploadImage = URL.createObjectURL(file.raw);
-      }
-    },
+    this.searchResults = results;
+    this.isSearching = false;
     
-    // 处理图片移除
-    handleImageRemove(file, fileList) {
-      this.imageList = fileList;
-      if (fileList.length === 0) {
-        this.uploadImage = null;
-      }
-    },
+    if (results.length === 0) {
+      this.$message.info(`未找到与"${keyword}"相关的内容`);
+    } else {
+      this.$message.success(`找到 ${results.length} 条相关内容`);
+      this.showSearchResults();
+    }
+  },
+  
+  // 显示搜索结果
+  showSearchResults() {
+    const h = this.$createElement;
+    const results = this.searchResults.map(item => 
+      h('div', {
+        class: 'search-result-item',
+        on: {
+          click: () => {
+            this.$msgbox.close();
+            this.goToDetail(item);
+          }
+        }
+      }, [
+        h('img', {
+          attrs: { src: item.image },
+          class: 'search-result-img'
+        }),
+        h('div', { class: 'search-result-info' }, [
+          h('div', { class: 'search-result-title' }, item.title),
+          h('div', { class: 'search-result-meta' }, 
+            `匹配: ${item.matchType} · ${item.username} · ${item.likes}赞`
+          )
+        ])
+      ])
+    );
     
-    // 处理移除
-    handleRemove(file) {
-      this.$refs.upload.handleRemove(file);
-    },
+    this.$msgbox({
+      title: '搜索结果',
+      message: h('div', { class: 'search-results' }, results),
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: '关闭',
+      customClass: 'search-results-dialog'
+    }).catch(() => {});
+  },
+  
+  // 搜索建议
+  querySearch(queryString, cb) {
+    if (!queryString) {
+      cb([]);
+      return;
+    }
     
-    // 弹窗关闭时的处理
-    handlePublishClose() {
-      // 清除上传的图片
-      this.imageList = [];
+    const suggestions = [];
+    const keyword = queryString.toLowerCase();
+    
+    // 从所有帖子中提取建议
+    Object.keys(this.categoryPosts).forEach(category => {
+      ['left', 'center', 'right'].forEach(column => {
+        this.categoryPosts[category][column].forEach(post => {
+          // 标题建议
+          if (post.title.toLowerCase().includes(keyword) && 
+              !suggestions.some(s => s.value === post.title)) {
+            suggestions.push({
+              value: post.title,
+              icon: 'el-icon-document',
+              type: '标题'
+            });
+          }
+          
+          // 标签建议
+          post.tags.forEach(tag => {
+            if (tag.toLowerCase().includes(keyword) && 
+                !suggestions.some(s => s.value === tag)) {
+              suggestions.push({
+                value: tag,
+                icon: 'el-icon-collection-tag',
+                type: '标签'
+              });
+            }
+          });
+          
+          // 用户名建议
+          if (post.username.toLowerCase().includes(keyword) && 
+              !suggestions.some(s => s.value === post.username)) {
+            suggestions.push({
+              value: post.username,
+              icon: 'el-icon-user',
+              type: '用户'
+            });
+          }
+        });
+      });
+    });
+    
+    // 限制建议数量
+    cb(suggestions.slice(0, 8));
+  },
+  
+  // 选择搜索建议
+  handleSelect(item) {
+    this.searchKeyword = item.value;
+    this.handleSearch();
+  },
+  
+  // 清除搜索
+  clearSearch() {
+    this.searchKeyword = '';
+    this.searchResults = [];
+    this.showCategoryPosts(this.activeCategory);
+  },
+  
+  // 监听搜索输入，按回车搜索
+  handleSearchEnter() {
+    this.handleSearch();
+  },
+  
+  // 使用搜索历史
+  useSearchHistory(keyword) {
+    this.searchKeyword = keyword;
+    this.handleSearch();
+  },
+  
+  // 清除搜索历史
+  clearSearchHistory() {
+    this.searchHistory = [];
+    this.$message.success('搜索历史已清除');
+  },
+  
+  handleCategoryChange(tab) {
+    const category = tab.name;
+    this.activeCategory = category;
+    this.showCategoryPosts(category);
+    this.$message.success(`切换到${tab.label}分类`);
+  },
+  
+ refreshRecommend() {
+  // 获取当前天气（假设从weather-card获取）
+  const weather = this.getCurrentWeather();
+  
+  // 根据天气推荐穿搭
+  
+  let recommendations = [];
+  
+  if (weather.includes('晴')) {
+    recommendations = [
+      '浅色T恤 + 牛仔短裤',
+      '碎花连衣裙 + 草帽',
+      'POLO衫 + 卡其裤',
+      '防晒衣 + 运动裤'
+    ];
+  } else if (weather.includes('雨')) {
+    recommendations = [
+      '防水风衣 + 牛仔裤',
+      '雨靴 + 休闲装',
+      '连帽卫衣 + 运动裤',
+      '短靴 + 长裙'
+    ];
+  } else if (weather.includes('冷') || weather.includes('冬')) {
+    recommendations = [
+      '羽绒服 + 高领毛衣',
+      '羊毛大衣 + 围巾',
+      '加绒卫衣 + 棉裤',
+      '皮草外套 + 长靴'
+    ];
+  } else {
+    recommendations = [
+      '针织衫 + 直筒裤',
+      '衬衫 + 半身裙',
+      '卫衣 + 工装裤',
+      '西装外套 + 牛仔裤'
+    ];
+  }
+  
+  // 随机选择
+  const randomIndex = Math.floor(Math.random() * recommendations.length);
+  this.currentRecommendation = recommendations[randomIndex];
+  
+  // 显示动画效果
+  this.$message({
+    message: 'AI已为您更新穿搭推荐',
+    type: 'success',
+    iconClass: 'el-icon-magic-stick',
+    duration: 1500
+  });
+},
+
+// 获取当前天气（需要根据您的实际天气数据来）
+getCurrentWeather() {
+  // 这里可以从weather-card获取天气信息
+  // 简单示例：
+  const weatherCard = document.querySelector('.weather-info .temp');
+  return weatherCard ? weatherCard.textContent : '晴';
+},
+  
+  toggleLike(item) {
+    item.isLiked = !item.isLiked;
+    if (item.isLiked) {
+      item.likes++;
+      this.$message.success('点赞成功');
+    } else {
+      item.likes--;
+      this.$message.info('已取消点赞');
+    }
+  },
+  
+  toggleCollect(item) {
+    item.isCollected = !item.isCollected;
+    if (item.isCollected) {
+      this.$message.success('收藏成功');
+    } else {
+      this.$message.info('已取消收藏');
+    }
+  },
+  
+  openCommentDialog(item) {
+    console.log('打开评论:', item)
+    this.currentCommentPost = item
+    this.showCommentDialog = true
+  },
+  
+  handleAddComment(content) {
+    if (!this.currentCommentPost || !content.trim()) return;
+    
+    const newComment = {
+      id: Date.now(),
+      user: {
+        name: '当前用户',
+        avatar: this.avatar || '/images/默认头像.png'
+      },
+      content: content,
+      time: '刚刚',
+      likes: 0,
+      isLiked: false
+    };
+    
+    if (!this.currentCommentPost.commentList) {
+      this.$set(this.currentCommentPost, 'commentList', []);
+    }
+    
+    this.currentCommentPost.commentList.push(newComment);
+    this.currentCommentPost.comments++;
+    
+    this.$message.success('评论发表成功');
+  },
+  
+  handleImageChange(file, fileList) {
+    this.imageList = fileList;
+    if (file.raw) {
+      this.uploadImage = URL.createObjectURL(file.raw);
+    }
+  },
+  
+  handleImageRemove(file, fileList) {
+    this.imageList = fileList;
+    if (fileList.length === 0) {
       this.uploadImage = null;
-      this.publishForm = {
-        title: '',
-        description: '',
-        tags: []
-      };
-    },
+    }
+  },
+  
+  handleRemove(file) {
+    this.$refs.upload.handleRemove(file);
+  },
+  
+  handlePublishClose() {
+    this.imageList = [];
+    this.uploadImage = null;
+    this.publishForm = {
+      title: '',
+      description: '',
+      tags: []
+    };
+  },
+  
+  publishPost() {
+    if (!this.publishForm.title) {
+      this.$message.warning('请输入标题');
+      return;
+    }
     
-    publishPost() {
-      // 验证表单
-      if (!this.publishForm.title) {
-        this.$message.warning('请输入标题');
-        return;
-      }
-      
-      if (!this.publishForm.description) {
-        this.$message.warning('请输入描述');
-        return;
-      }
-      
-      if (this.imageList.length === 0) {
-        this.$message.warning('请上传图片');
-        return;
-      }
-      
-      // 创建新帖子，使用上传的图片
+    if (!this.publishForm.description) {
+      this.$message.warning('请输入描述');
+      return;
+    }
+    
+    if (this.imageList.length === 0) {
+      this.$message.warning('请上传图片');
+      return;
+    }
+    
+    // 创建新帖子
+    const newPost = {
+      id: Date.now(),
+      image: this.uploadImage || '/images/默认穿搭.png',
+      title: this.publishForm.title,
+      description: this.publishForm.description,
+      tags: this.publishForm.tags.length ? this.publishForm.tags : ['新发布'],
+      avatar: this.avatar,
+      username: '当前用户',
+      likes: 0,
+      comments: 0,
+      isLiked: false,
+      isCollected: false,
+      multi: false,
+      category: this.activeCategory,
+      commentList: []
+    };
+    
+    // 轮播添加：左 -> 中 -> 右
+    const columnIndex = this.publishCounter % 3;
+    
+    // 添加到当前分类的数据中
+    if (columnIndex === 0) {
+      this.categoryPosts[this.activeCategory].left.push(newPost);
+    } else if (columnIndex === 1) {
+      this.categoryPosts[this.activeCategory].center.push(newPost);
+    } else {
+      this.categoryPosts[this.activeCategory].right.push(newPost);
+    }
+    
+    // 更新当前显示的帖子
+    this.showCategoryPosts(this.activeCategory);
+    
+    // 计数器加1
+    this.publishCounter++;
+    
+    // 关闭弹窗并重置表单
+    this.showPublishDialog = false;
+    this.publishForm = {
+      title: '',
+      description: '',
+      tags: []
+    };
+    this.imageList = [];
+    this.uploadImage = null;
+    
+    this.$message.success('发布成功！');
+  },
+  
+  loadMore() {
+    this.loading = true;
+    setTimeout(() => {
       const newPost = {
         id: Date.now(),
-        image: this.uploadImage || '/images/默认穿搭.png',
-        title: this.publishForm.title,
-        description: this.publishForm.description,
-        tags: this.publishForm.tags.length ? this.publishForm.tags : ['新发布'],
-        avatar: this.avatar,
-        username: '当前用户',
-        likes: 0,
-        comments: 0,
+        image: '/images/温柔风.png',
+        title: '新穿搭' + (Math.random() * 100).toFixed(0),
+        tags: ['新潮', '时尚'],
+        avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+        username: '新用户',
+        likes: Math.floor(Math.random() * 500),
+        comments: Math.floor(Math.random() * 100),
         isLiked: false,
         isCollected: false,
-        multi: false,
+        category: this.activeCategory,
         commentList: []
       };
       
-      // 轮播添加：左 -> 中 -> 右 -> 左 -> 中 -> 右 ...
-      const columnIndex = this.publishCounter % 3;
-      
-      if (columnIndex === 0) {
+      const random = Math.floor(Math.random() * 3);
+      if (random === 0) {
+        this.categoryPosts[this.activeCategory].left.push(newPost);
         this.leftPosts.push(newPost);
-      } else if (columnIndex === 1) {
+      } else if (random === 1) {
+        this.categoryPosts[this.activeCategory].center.push(newPost);
         this.centerPosts.push(newPost);
       } else {
+        this.categoryPosts[this.activeCategory].right.push(newPost);
         this.rightPosts.push(newPost);
       }
       
-      // 计数器加1
-      this.publishCounter++;
-      
-      // 关闭弹窗并重置表单
-      this.showPublishDialog = false;
-      this.publishForm = {
-        title: '',
-        description: '',
-        tags: []
-      };
-      this.imageList = [];
-      this.uploadImage = null;
-      
-      this.$message.success('发布成功！');
-    },
-    
-    loadMore() {
-      this.loading = true;
-      setTimeout(() => {
-        const newPost = {
-          id: Date.now(),
-          image: '/images/温柔风.png',
-          title: '新穿搭' + (Math.random() * 100).toFixed(0),
-          tags: ['新潮', '时尚'],
-          avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-          username: '新用户',
-          likes: Math.floor(Math.random() * 500),
-          comments: Math.floor(Math.random() * 100),
-          isLiked: false,
-          isCollected: false,
-          commentList: []
-        };
-        
-        const random = Math.floor(Math.random() * 3);
-        if (random === 0) this.leftPosts.push(newPost);
-        else if (random === 1) this.centerPosts.push(newPost);
-        else this.rightPosts.push(newPost);
-        
-        this.loading = false;
-        this.$message.success('加载成功');
-      }, 1000);
-    },
-    
-    goToDetail(item) {
-      this.$router.push({
-        path: '/outfit/outfit/detail',
-        query: { post: JSON.stringify(item) }
-      })
-    }
+      this.loading = false;
+      this.$message.success('加载成功');
+    }, 1000);
+  },
+  
+  goToDetail(item) {
+    this.$router.push({
+      path: '/outfit/outfit/detail',
+      query: { post: JSON.stringify(item) }
+    })
   }
+}
 };
 </script>
 
 <style lang="scss" scoped>
-/* 您的原有样式完全不变 */
+
 .dashboard-editor-container {
   padding: 30px;
   position: relative;
@@ -923,13 +1435,22 @@ export default {
   }
 
   .header-search {
-    ::v-deep .el-input__inner {
-      background-color: rgba(255, 255, 255, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      transition: all 0.3s;
-      &:focus {
-        background-color: #fff;
-        width: 350px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    ::v-deep .el-autocomplete {
+      width: 300px;
+      
+      .el-input__inner {
+        background-color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s;
+        
+        &:focus {
+          background-color: #fff;
+          width: 350px;
+        }
       }
     }
   }
@@ -1014,6 +1535,7 @@ export default {
   .label {
     font-style: italic;
     color: #666;
+    margin-left: 8px;
   }
   
   .content {
@@ -1022,6 +1544,7 @@ export default {
     color: #333;
     font-weight: 400;
     flex: 1;
+    margin: 0 10px;
   }
 }
 
@@ -1162,7 +1685,7 @@ export default {
     gap: 4px;
     
     &:hover {
-      color: #409eff;
+      color: #9ec4e3;
     }
     
     &.liked {
@@ -1229,5 +1752,172 @@ export default {
 
 .refresh-btn:active i {
   animation: luxury-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.el-upload-list__item-actions {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  cursor: default;
+  text-align: center;
+  color: #fff;
+  opacity: 0;
+  font-size: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity .3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.el-upload-list__item:hover .el-upload-list__item-actions {
+  opacity: 1;
+}
+
+.el-upload-list__item-delete {
+  cursor: pointer;
+  margin: 0 5px;
+  
+  &:hover {
+    color: #ff6b6b;
+  }
+}
+
+/* 搜索建议样式 */
+.search-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  i {
+    color: #909399;
+    font-size: 14px;
+  }
+  
+  span {
+    font-size: 13px;
+  }
+}
+
+/* 搜索结果样式 */
+.search-results {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  
+  .search-result-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &:hover {
+      background-color: #f5f7fa;
+    }
+    
+    .search-result-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    
+    .search-result-info {
+      flex: 1;
+      
+      .search-result-title {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+      
+      .search-result-meta {
+        font-size: 12px;
+        color: #909399;
+      }
+    }
+  }
+}
+
+/* 消息弹窗样式 */
+.message-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
+.message-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.message-item:hover {
+  background-color: #f5f7fa;
+}
+
+.message-item:last-child {
+  border-bottom: none;
+}
+
+.message-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f0f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  i {
+    font-size: 18px;
+  }
+  
+  &.like { background-color: #ffeded; }
+  &.comment { background-color: #ecf5ff; }
+  &.follow { background-color: #f0f9eb; }
+  &.system { background-color: #fdf6ec; }
+}
+
+.message-content {
+  flex: 1;
+  
+  .message-text {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  
+  .message-time {
+    font-size: 12px;
+    color: #999;
+  }
+}
+
+.message-footer {
+  text-align: center;
+  padding: 15px 0 5px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 5px;
+}
+
+.message-dialog {
+  .el-dialog__body {
+    padding: 10px 20px;
+  }
 }
 </style>
