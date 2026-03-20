@@ -1,8 +1,8 @@
 @echo off
-echo 正在备份代码到 GitHub...
+echo Backup to GitHub...
 git add .
-git commit -m "毕设自动更新备份"
+git commit -m "bishe auto backup"
 git push
 echo.
-echo 备份完成！按任意键退出
-pause > nul
+echo Backup success!
+pause >nul
