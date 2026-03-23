@@ -185,6 +185,30 @@
         <div class="content-text">{{ recommendResult.recommendation }}</div>
       </div>
 
+      <div class="items-grid" v-if="recommendResult.items && recommendResult.items.length > 0">
+  <div class="label"><i class="el-icon-picture"></i> 匹配单品图</div>
+  <div class="item.material">
+    <div v-for="(item, index) in recommendResult.items" :key="index" class="outfit-item">
+      <el-image 
+        :src="baseUrl + item.material" 
+        fit="cover" 
+        class="item-img"
+        :preview-src-list="[baseUrl + item.material]">
+        <div slot="error" class="image-slot">
+          <i class="el-icon-picture-outline"></i>
+        </div>
+      </el-image>
+      <div class="item-info">
+        <span class="item-name">{{ item.name }}</span>
+        <span class="item-tag">{{ item.color }}{{ item.type }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
       <div class="logic-box">
         <div class="label"> 推荐理由</div>
         <p>{{ recommendResult.reason }}</p>
@@ -200,6 +224,31 @@
           <p>{{ recommendResult.temperatureAdvice }}</p>
         </div>
       </div>
+
+
+<div class="items-showcase-section" v-if="recommendResult.items && recommendResult.items.length > 0">
+        <div class="label"><i class="el-icon-picture"></i> WARDROBE MATCH / 匹配衣橱资源</div>
+        
+        <div class="item.material">
+          <div v-for="(item, index) in recommendResult.items" :key="index" class="cloth-card">
+            <el-image 
+              :src="baseUrl + item.material" 
+              fit="contain" 
+              class="cloth-img"
+              :preview-src-list="[baseUrl + item.material]">
+              <div slot="error" class="image-slot">
+                <i class="el-icon-picture-outline"></i>
+              </div>
+            </el-image>
+            
+            <div class="cloth-info">
+              <span class="cloth-name">{{ item.name }}</span>
+              <span class="cloth-tag">{{ item.color }} {{ item.type }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div v-else class="placeholder-state">
@@ -381,57 +430,96 @@
           </div>
         </div>
 
-        <div class="display-panel">
-          <div class="panel-inner result-area">
-            <div v-if="loading" class="loader-state">
-              <div class="line-loader"></div>
-              <p>正在为您构思最佳方案...</p>
-            </div>
+       <div class="display-panel">
+  <div class="panel-inner result-area">
+    <div v-if="loading" class="loader-state">
+      <div class="line-loader"></div>
+      <p>正在为您构思最佳方案...</p>
+    </div>
 
-            <div v-else-if="recommendResult" class="result-view animate-fade-in">
-              <div class="result-header">
-                <div class="status-indicator">PROPOSAL READY</div>
-                <h2>AI穿搭推荐</h2>
-              </div>
+    <div v-else-if="recommendResult" class="result-view animate-fade-in">
+      <div class="result-header">
+        <div class="status-indicator">PROPOSAL READY</div>
+        <h2> AI 穿搭推荐</h2>
+      </div>
 
-              <div class="recommendation-section">
-                <div class="label"><i class="el-icon-collection-tag"></i> 推荐方案</div>
-                <div class="content-text">{{ recommendResult.recommendation }}</div>
-              </div>
+      <div class="recommendation-section">
+        <div class="label"> 推荐方案</div>
+        <div class="content-text">{{ recommendResult.recommendation }}</div>
+      </div>
 
-              <div class="logic-box">
-                <div class="label"><i class="el-icon-chat-dot-round"></i> 推荐理由</div>
-                <p>{{ recommendResult.reason }}</p>
+      <div class="items-grid" v-if="recommendResult.items && recommendResult.items.length > 0">
+        <div class="label"><i class="el-icon-picture"></i> 匹配单品图</div>
+        <div class="items-wrapper" style="display: flex; gap: 15px; overflow-x: auto;"> 
+          <div v-for="(item, index) in recommendResult.items" :key="'item-'+index" class="outfit-item">
+            <el-image 
+              :src="baseUrl + item.material" 
+              fit="cover" 
+              class="item-img"
+              style="width: 140px; height: 180px; border-radius: 4px;"
+              :preview-src-list="[baseUrl + item.material]">
+              <div slot="error" class="image-slot" style="background: #f5f7fa; display: flex; align-items: center; justify-content: center; height: 100%;">
+                <i class="el-icon-picture-outline"></i>
               </div>
-
-              <div class="details-grid">
-                <div class="detail-item">
-                  <div class="label"><i class="el-icon-collection-tag"></i> 搭配细节</div>
-                  <p>{{ recommendResult.styleTips }}</p>
-                </div>
-                <div class="detail-item">
-                  <div class="label"><i class="el-icon-wind-power"></i> 气候适配</div>
-                  <p>{{ recommendResult.temperatureAdvice }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="placeholder-state">
-              <div class="mouse-container">
-                <div class="mouse">
-                  <div class="mouse-wheel"></div>
-                </div>
-              </div>
-              
-              <div class="style-quote">
-                "Style is a way to say who you are without having to speak."
-              </div>
-              
-              <div class="inspire-title">开启您的今日穿搭灵感之旅</div>
-              <div class="inspire-desc">请在左侧填写信息，AI将为您智能匹配衣橱资源</div>
+            </el-image>
+            <div class="item-info">
+              <span class="item-name" style="display: block; font-size: 12px; font-weight: bold;">{{ item.name }}</span>
+              <span class="item-tag" style="font-size: 10px; color: #c5a059;">{{ item.color }}{{ item.type }}</span>
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="logic-box">
+        <div class="label"> 推荐理由</div>
+        <p>{{ recommendResult.reason }}</p>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="label"><i class="el-icon-collection-tag"></i> 搭配细节</div>
+          <p>{{ recommendResult.styleTips }}</p>
+        </div>
+        <div class="detail-item">
+          <div class="label"><i class="el-icon-wind-power"></i> 气候适配</div>
+          <p>{{ recommendResult.temperatureAdvice }}</p>
+        </div>
+      </div>
+
+      <div class="items-showcase-section" v-if="recommendResult.items && recommendResult.items.length > 0">
+        <div class="label"><i class="el-icon-picture"></i> WARDROBE MATCH / 匹配衣橱资源</div>
+        
+        <div class="items-sorter" style="display: flex; gap: 15px; overflow-x: auto;">
+          <div v-for="(item, index) in recommendResult.items" :key="'showcase-'+index" class="cloth-card">
+            <el-image 
+              :src="baseUrl + item.material" 
+              fit="contain" 
+              class="cloth-img"
+              style="width: 140px; height: 180px;"
+              :preview-src-list="[baseUrl + item.material]">
+              <div slot="error" class="image-slot">
+                <i class="el-icon-picture-outline"></i>
+              </div>
+            </el-image>
+            <div class="cloth-info">
+              <span class="cloth-name">{{ item.name }}</span>
+              <span class="cloth-tag">{{ item.color }} {{ item.type }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="placeholder-state">
+      <div class="mouse-container">
+        <div class="mouse"><div class="mouse-wheel"></div></div>
+      </div>
+      <div class="style-quote">"Style is a way to say who you are without having to speak."</div>
+      <h3 class="inspire-title">开启您的今日穿搭灵感之旅</h3>
+      <p class="inspire-desc">请在左侧填写信息，AI 将为您智能匹配衣橱资源</p>
+    </div>
+  </div>
+</div>
       </div>
     </div>
   </div>
@@ -821,6 +909,119 @@ $border-light: #f0f0f0;
 ::v-deep .el-input-number__increase, ::v-deep .el-input-number__decrease { display: none; }
 ::v-deep .el-radio__input .el-radio__inner { border-color: #bbb; }
 ::v-deep .el-radio__input.is-checked .el-radio__inner { border-color: $gold-accent; background: $gold-accent; }
+
+/* 新增图片区域样式 */
+.items-grid {
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+
+.items-wrapper {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto; /* 如果图片多，可以左右滑动 */
+  padding-bottom: 10px;
+}
+
+.outfit-item {
+  flex: 0 0 140px; /* 固定的宽度 */
+  text-align: center;
+  
+  .item-img {
+    width: 140px;
+    height: 180px;
+    border-radius: 4px;
+    border: 1px solid #f0f0f0;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+  }
+  
+  .item-info {
+    display: flex;
+    flex-direction: column;
+    
+    .item-name {
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .item-tag {
+      font-size: 10px;
+      color: #c5a059; /* 你的金棕色主题色 */
+      margin-top: 4px;
+    }
+  }
+}
+
+/* 隐藏滚动条让视觉更美观 */
+.items-wrapper::-webkit-scrollbar {
+  height: 4px;
+}
+.items-wrapper::-webkit-scrollbar-thumb {
+  background: #eee;
+  border-radius: 2px;
+}
+
+/* 💡 新增单品展示区专属样式 */
+.items-showcase-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px dashed #e8e0d5; /* 保持与上面 detail-item 一致的虚线 */
+
+  .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8c8379;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .items-sorter {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto; /* 关键：图片多时支持横向滑动 */
+    padding-bottom: 10px;
+
+    .cloth-card {
+      flex: 0 0 140px; /* 固定宽度，不被压缩 */
+      text-align: center;
+      transition: transform 0.3s;
+
+      .cloth-img {
+        width: 140px;
+        height: 180px;
+        border-radius: 4px;
+        border: 1px solid #f2f0ec;
+        background: #fdfdfd;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+
+        .image-slot {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          background: #f9f9f9;
+          color: #ccc;
+        }
+      }
+
+      .cloth-info {
+        margin-top: 10px;
+        .cloth-name { font-size: 12px; color: #333; font-weight: 500; display: block; }
+        .cloth-tag { font-size: 10px; color: #c5a059; margin-top: 4px; display: block; }
+      }
+
+      &:hover { transform: translateY(-5px); }
+    }
+
+    /* 装饰用的小型滑动条 */
+    &::-webkit-scrollbar { height: 3px; }
+    &::-webkit-scrollbar-thumb { background: #e8e0d5; border-radius: 2px; }
+  }
+}
+
 </style>
 
 <script>
@@ -831,6 +1032,7 @@ export default {
   data() {
     return {
       loading: false,
+      baseUrl: process.env.VUE_APP_BASE_API,
       formData: {
         occasion: '商务晚宴',
         age: 25,
@@ -865,6 +1067,7 @@ export default {
         
         if (response.code === 200) {
           this.recommendResult = response.data
+          console.log("后端返回的推荐结果：", response.data);
           this.showSuccess('推荐生成成功！')
         } else {
           this.showError('推荐失败：' + response.msg)
@@ -877,7 +1080,8 @@ export default {
           recommendation: '👔 推荐穿搭方案：\n\n• 上衣：黑色西装/深色礼服衬衫\n• 下装：黑色西裤/及膝A字裙\n• 外套：西装外套/小香风外套\n• 鞋子：黑色皮鞋/尖头高跟鞋\n• 配饰：简约手表 + 珍珠/钻石饰品\n• 材质建议：选择棉麻、真丝等透气材质\n• 颜色建议：浅色系更凉爽\n• 身材建议：上浅下深，突出上半身，A字裙/阔腿裤平衡比例\n• 风格建议：年轻时尚，可以尝试流行元素\n• 颜色推荐：明亮色系、流行色',
           reason: '基于您的个人特征为您定制：\n\n📊 分析维度：\n• 年龄 25 岁：选择适合年龄段的风格\n• 梨型身材 身材：建议A字裙/阔腿裤平衡比例\n• 22℃ 天气：☀️ 温暖舒适：适合薄外套，早晚温差注意\n• 商务晚宴 场合：确保场合适宜性\n\n🎯 推荐逻辑：\n结合温度适配、身材优化、场合匹配等多维度算法',
           styleTips: '💡 穿搭小贴士：\n• 选择合身不紧身的剪裁，舒适度很重要\n• 注意色彩搭配，全身不超过3个主色\n• 色彩建议：黑白灰：经典百搭，适合所有场合',
-          temperatureAdvice: '☀️ 温暖舒适：适合薄外套，早晚温差注意'
+          temperatureAdvice: '☀️ 温暖舒适：适合薄外套，早晚温差注意',
+          items: []
         }
       } finally {
         this.loading = false

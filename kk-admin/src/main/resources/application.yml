@@ -3,7 +3,7 @@ kk:
   name: KK
   version: 3.9.1
   copyrightYear: 2025
-  profile: D:/kk/uploadPath
+  profile: D:/KK-Vue/yichuphoto
   # 获取ip地址开关
   addressEnabled: false
   # 验证码类型 math 数字计算 char 字符验证

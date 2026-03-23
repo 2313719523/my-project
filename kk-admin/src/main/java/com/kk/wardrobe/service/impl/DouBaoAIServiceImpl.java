@@ -8,10 +8,14 @@ import com.kk.wardrobe.dto.AiRecommendResponse;
 import com.kk.wardrobe.service.AiRecommendService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,13 +30,15 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
     private final OkHttpClient client;
     private final AiRecommendService localRuleService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate; // 注入数据库操作类，用于匹配图片
+
     public DouBaoAIServiceImpl(@Qualifier("localRuleService") AiRecommendService localRuleService) {
         this.localRuleService = localRuleService;
         this.client = new OkHttpClient.Builder()
-                .connectTimeout(11000, TimeUnit.SECONDS)
-                .readTimeout(2000, TimeUnit.SECONDS)
-                .writeTimeout(1000, TimeUnit.SECONDS)
-                .callTimeout(3000, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -47,188 +53,113 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
             try {
                 String prompt = buildPrompt(request);
                 String aiResponseText = callDouBaoAPI(prompt, retryCount.get() + 1);
-                AiRecommendResponse response = parseAIResponse(aiResponseText);
-                log.info("【豆包AI】推荐生成成功");
+                // 核心改动：解析的同时去数据库找图
+                AiRecommendResponse response = parseAndMatchImages(aiResponseText);
+                log.info("【豆包AI】推荐及图片匹配成功");
                 return response;
             } catch (IOException e) {
                 retryCount.incrementAndGet();
                 log.warn("【豆包AI】第{}次调用失败: {}", retryCount.get(), e.getMessage());
-
                 if (retryCount.get() >= maxRetries) {
-                    log.error("【豆包AI】已达最大重试次数({})，降级使用本地规则", maxRetries);
                     return localRuleService.getOutfitRecommendation(request);
                 }
-
                 try {
-                    long waitTime = (long) Math.pow(2, retryCount.get() - 1) * 1000;
-                    log.info("等待{}ms后重试...", waitTime);
-                    Thread.sleep(waitTime);
+                    Thread.sleep(1000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     return localRuleService.getOutfitRecommendation(request);
                 }
             } catch (Exception e) {
-                log.error("【豆包AI】调用失败，降级使用本地规则", e);
+                log.error("【豆包AI】逻辑执行异常，降级处理", e);
                 return localRuleService.getOutfitRecommendation(request);
             }
         }
-
         return localRuleService.getOutfitRecommendation(request);
     }
 
     private String buildPrompt(AiRecommendRequest request) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("你是一位专业的穿搭顾问，请为用户提供穿搭推荐。\n\n");
-        prompt.append("【用户需求】\n");
-        prompt.append("场合：").append(request.getOccasion()).append("\n");
-        prompt.append("年龄：").append(request.getAge()).append("岁\n");
-        prompt.append("身材：").append(request.getBodyType()).append("\n");
-        prompt.append("温度：").append(request.getTemperature()).append("℃\n");
-        prompt.append("性别：").append(request.getGender()).append("\n");
-
-        if (request.getStylePreference() != null) {
-            prompt.append("风格偏好：").append(request.getStylePreference()).append("\n");
-        } else {
-            prompt.append("风格偏好：无\n");
-        }
-
-        if (request.getBudget() != null) {
-            prompt.append("预算：").append(request.getBudget()).append("\n");
-        } else {
-            prompt.append("预算：无\n");
-        }
-
-        if (request.getHeight() != null) {
-            prompt.append("身高：").append(request.getHeight()).append("cm\n");
-        } else {
-            prompt.append("身高：未指定\n");
-        }
-
-        if (request.getWeight() != null) {
-            prompt.append("体重：").append(request.getWeight()).append("kg\n");
-        } else {
-            prompt.append("体重：未指定\n");
-        }
-
-        if (request.getSizePreference() != null) {
-            prompt.append("尺码偏好：").append(request.getSizePreference()).append("\n");
-        } else {
-            prompt.append("尺码偏好：无\n");
-        }
-
-        prompt.append("\n【输出要求】\n");
-        prompt.append("1. 推荐一套完整的穿搭方案（上衣、下装、外套、鞋子、配饰）\n");
-        prompt.append("2. 说明推荐理由\n");
-        prompt.append("3. 提供风格建议\n");
-        prompt.append("4. 考虑温度适配性\n\n");
-        prompt.append("请以JSON格式返回，包含以下字段：\n");
-        prompt.append("- recommendation: 推荐方案（字符串）\n");
-        prompt.append("- reason: 推荐理由（字符串）\n");
-        prompt.append("- styleTips: 风格建议（字符串）\n");
-        prompt.append("- temperatureAdvice: 温度适配说明（字符串）");
-
+        prompt.append("你是一位专业的穿搭顾问。请为用户推荐穿搭方案。\n");
+        prompt.append("要求：必须返回JSON格式。包含字段：recommendation(总评), reason(理由), styleTips(技巧), temperatureAdvice(温度建议), ");
+        prompt.append("items(单品列表，每个单品含name, type, color)。\n");
+        prompt.append("注意：type字段请务必从以下词汇中选择：T恤, 衬衫, 短裤, 开衫, 半身裙, 连衣裙, 玛丽珍, 牛奶裤, 皮鞋, 卫衣, 西装裤, 运动背心, 运动鞋。\n");
+        prompt.append("用户情况：场合-").append(request.getOccasion()).append("，温度-").append(request.getTemperature()).append("℃。");
         return prompt.toString();
     }
 
     private String callDouBaoAPI(String prompt, int attempt) throws IOException {
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", MODEL);
+        JSONArray messages = new JSONArray();
+        JSONObject msg = new JSONObject();
+        msg.put("role", "user");
+        msg.put("content", prompt);
+        messages.add(msg);
+        requestBody.put("messages", messages);
 
-        JSONArray messagesArray = new JSONArray();
-        JSONObject messageObj = new JSONObject();
-        messageObj.put("role", "user");
-        messageObj.put("content", prompt);
-        messagesArray.add(messageObj);
-
-        requestBody.put("messages", messagesArray);
-        requestBody.put("stream", false);
-        requestBody.put("max_tokens", 1000);
-        requestBody.put("temperature", 0.7);
-
-        log.info("【豆包AI】第{}次尝试调用API", attempt);
-
-        RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"),
-                requestBody.toJSONString()
-        );
-
-        Request request = new Request.Builder()
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestBody.toJSONString());
+        Request apiReq = new Request.Builder()
                 .url(API_URL)
                 .header("Authorization", "Bearer " + API_KEY)
-                .header("Content-Type", "application/json")
                 .post(body)
                 .build();
 
-        Response response = null;
-        try {
-            long startTime = System.currentTimeMillis();
-            log.info("【豆包AI】第{}次调用开始...", attempt);
-
-            response = client.newCall(request).execute();
-            long endTime = System.currentTimeMillis();
-
-            log.info("【豆包AI】第{}次调用完成，耗时: {}ms, 状态码: {}",
-                    attempt, (endTime - startTime), response.code());
-
-            if (!response.isSuccessful()) {
-                String errorBody = "";
-                if (response.body() != null) {
-                    errorBody = response.body().string();
-                }
-                log.error("【豆包AI】API调用失败，状态码: {}", response.code());
-                throw new IOException("API调用失败，状态码: " + response.code());
-            }
-
-            String responseBody = "";
-            if (response.body() != null) {
-                responseBody = response.body().string();
-            }
-
-            log.debug("【豆包AI】原始响应长度: {} chars", responseBody.length());
-
-            JSONObject jsonResponse = JSON.parseObject(responseBody);
-            if (jsonResponse.containsKey("choices")) {
-                String content = jsonResponse.getJSONArray("choices")
-                        .getJSONObject(0)
-                        .getJSONObject("message")
-                        .getString("content");
-                log.info("【豆包AI】解析成功，内容长度: {} chars", content.length());
-                return content;
-            } else {
-                log.error("【豆包AI】响应格式异常");
-                throw new IOException("API返回格式异常");
-            }
-        } catch (IOException e) {
-            log.error("【豆包AI】第{}次调用异常: {}", attempt, e.getMessage());
-            throw e;
-        } finally {
-            if (response != null && response.body() != null) {
-                response.body().close();
-            }
+        try (Response response = client.newCall(apiReq).execute()) {
+            if (!response.isSuccessful()) throw new IOException("API Error " + response.code());
+            JSONObject resJson = JSON.parseObject(response.body().string());
+            return resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
         }
     }
 
-    private AiRecommendResponse parseAIResponse(String aiResponseText) {
-        try {
-            JSONObject json = JSON.parseObject(aiResponseText);
-            AiRecommendResponse response = new AiRecommendResponse();
+    private AiRecommendResponse parseAndMatchImages(String aiResponseText) {
+        // 去掉可能存在的Markdown格式
+        String cleanJson = aiResponseText.replace("```json", "").replace("```", "").trim();
+        JSONObject json = JSON.parseObject(cleanJson);
 
-            response.setRecommendation(json.getString("recommendation"));
-            response.setReason(json.getString("reason"));
-            response.setStyleTips(json.getString("styleTips"));
-            response.setTemperatureAdvice(json.getString("temperatureAdvice"));
+        AiRecommendResponse response = new AiRecommendResponse();
+        response.setRecommendation(json.getString("recommendation"));
+        response.setReason(json.getString("reason"));
+        response.setStyleTips(json.getString("styleTips"));
+        response.setTemperatureAdvice(json.getString("temperatureAdvice"));
 
-            return response;
-        } catch (Exception e) {
-            log.warn("AI返回非标准JSON，按文本处理");
+        JSONArray itemsArray = json.getJSONArray("items");
+        List<AiRecommendResponse.ClothingItem> clothingItems = new ArrayList<>();
 
-            AiRecommendResponse response = new AiRecommendResponse();
-            response.setRecommendation(aiResponseText);
-            response.setReason("基于AI智能生成的个性化穿搭建议");
-            response.setStyleTips("简约时尚，适合日常穿着");
-            response.setTemperatureAdvice("根据当前温度调整衣物厚度");
+        if (itemsArray != null) {
+            for (int i = 0; i < itemsArray.size(); i++) {
+                JSONObject obj = itemsArray.getJSONObject(i);
+                AiRecommendResponse.ClothingItem item = new AiRecommendResponse.ClothingItem();
+                item.setName(obj.getString("name"));
+                item.setType(obj.getString("type"));
+                item.setColor(obj.getString("color"));
 
-            return response;
+                // --- 毕设亮点：去数据库检索图片路径 ---
+                String sql = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1";
+                try {
+                    // 1. 获取 AI 返回的颜色，并做非空处理
+                    String color = item.getColor() != null ? item.getColor() : "";
+
+                    // 2. 取颜色的关键字进行模糊查询（比如“深蓝色”取“蓝”，“白色”取“白”）
+                    // 建议取 1 到 2 个字，这样匹配率最高
+                    String colorKey = color.length() >= 1 ? color.substring(0, Math.min(2, color.length())) : "";
+
+                    // 3. 执行 SQL 查询
+                    // 注意：这里的 sql 应该是 SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1
+                    String dbImgUrl = jdbcTemplate.queryForObject(sql, String.class, item.getType(), "%" + colorKey + "%");
+
+                    // 4. 直接设置路径（因为你数据库里已经存了 /profile/upload/T恤1.jpg）
+                    item.setMaterial(dbImgUrl);
+
+                    log.info("成功匹配图片: 类别={}, 颜色={}, 路径={}", item.getType(), color, dbImgUrl);
+                } catch (Exception e) {
+                    // 如果数据库没搜到，或者报错了，给一个默认图，防止前端图片碎裂
+                    log.warn("未能匹配到图片: 类别={}, 颜色={}", item.getType(), item.getColor());
+                    item.setMaterial("/profile/upload/default.png");
+                }
+                clothingItems.add(item);
+            }
         }
+        response.setItems(clothingItems);
+        return response;
     }
 }
