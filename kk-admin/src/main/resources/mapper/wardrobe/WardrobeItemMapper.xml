@@ -12,11 +12,14 @@
         <result property="isCommon" column="is_common"/>
         <result property="addTime" column="add_time"/>
         <result property="remark" column="remark"/>
+        <result property="style" column="style"/>
+        <result property="isFavorite" column="is_favorite"/>
+        <result property="imgUrl" column="img_url"/>
     </resultMap>
 
     <sql id="selectWardrobeItemVo">
         select id, name, category, color, season, price, is_common, add_time, remark,
-               create_by, create_time, update_by, update_time
+               style, is_favorite, img_url, create_by, create_time
         from wardrobe_item
     </sql>
 
@@ -25,12 +28,22 @@
         <where>
             <if test="name != null and name != ''"> AND name like concat('%', #{name}, '%')</if>
             <if test="category != null and category != ''"> AND category = #{category}</if>
-            <if test="color != null and color != ''"> AND color = #{color}</if>
-            <if test="season != null and season != ''"> AND season = #{season}</if>
-            <if test="isCommon != null"> AND is_common = #{isCommon}</if>
+            <if test="style != null and style != ''"> AND style = #{style}</if>
         </where>
         order by add_time desc
     </select>
 
-    <!-- 其他CRUD SQL 省略... -->
+    <update id="updateWardrobeItem" parameterType="WardrobeItem">
+        update wardrobe_item
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null">name = #{name},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="style != null">style = #{style},</if>
+            <if test="isFavorite != null">is_favorite = #{isFavorite},</if>
+            <if test="imgUrl != null">img_url = #{imgUrl},</if>
+            update_time = sysdate()
+        </trim>
+        where id = #{id}
+    </update>
+
 </mapper>
