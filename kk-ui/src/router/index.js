@@ -134,7 +134,7 @@ export const constantRoutes = [
 {
   path: '/wardrobe',
   component: Layout,
-  hidden: false,
+  hidden: true,
   redirect: '/wardrobe/home', // 修改默认跳转到首页
   meta: { title: '我的衣橱', icon: 'el-icon-suitcase' },
   children: [
@@ -172,7 +172,7 @@ export const constantRoutes = [
 {
   path: '/outfit',
   component: Layout,
-  hidden: false,
+  hidden: true,
   redirect: '/outfit/outfit/index',
   meta: { title: '穿搭', icon: 'clothes' },
   children: [{

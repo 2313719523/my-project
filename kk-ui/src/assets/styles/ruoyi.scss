@@ -1,299 +1,136 @@
 /**
-* 通用css样式布局处理
-* Copyright (c) 2019 ruoyi
+* 通用css样式布局处理 - 高奢定制版
+* 修改说明：全局重置了 Element UI 按钮为黑金配色，增强了视觉质感
 */
 
-/** 基础通用 **/
-.pt5 {
-  padding-top: 5px;
-}
+/** 1. 基础通用补丁 (保持原有的间距逻辑) **/
+.pt5 { padding-top: 5px; }
+.pr5 { padding-right: 5px; }
+.pb5 { padding-bottom: 5px; }
+.mt5 { margin-top: 5px; }
+.mr5 { margin-right: 5px; }
+.mb5 { margin-bottom: 5px; }
+.mb8 { margin-bottom: 8px; }
+.ml5 { margin-left: 5px; }
+.mt10 { margin-top: 10px; }
+.mr10 { margin-right: 10px; }
+.mb10 { margin-bottom: 10px; }
+.ml10 { margin-left: 10px; }
+.mt20 { margin-top: 20px; }
+.mr20 { margin-right: 20px; }
+.mb20 { margin-bottom: 20px; }
+.ml20 { margin-left: 20px; }
 
-.pr5 {
-  padding-right: 5px;
-}
-
-.pb5 {
-  padding-bottom: 5px;
-}
-
-.mt5 {
-  margin-top: 5px;
-}
-
-.mr5 {
-  margin-right: 5px;
-}
-
-.mb5 {
-  margin-bottom: 5px;
-}
-
-.mb8 {
-  margin-bottom: 8px;
-}
-
-.ml5 {
-  margin-left: 5px;
-}
-
-.mt10 {
-  margin-top: 10px;
-}
-
-.mr10 {
-  margin-right: 10px;
-}
-
-.mb10 {
-  margin-bottom: 10px;
-}
-.ml10 {
-	margin-left: 10px;
-}
-
-.mt20 {
-  margin-top: 20px;
-}
-
-.mr20 {
-  margin-right: 20px;
-}
-
-.mb20 {
-  margin-bottom: 20px;
-}
-.ml20 {
-	margin-left: 20px;
-}
-
+/** 2. 字体与全局重置 **/
 .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
-  font-family: inherit;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif; /* 引入衬线体增强高级感 */
   font-weight: 500;
   line-height: 1.1;
-  color: inherit;
+  color: #1a1a1a;
 }
 
-.el-message-box__status + .el-message-box__message{
-  word-break: break-word;
+/** 3. 【核心改动】全局高奢按钮重置 **/
+
+/* --- A. 主按钮（Primary）：全系统蓝按钮变黑金 --- */
+.el-button--primary {
+  background-color: #1a1a1a !important; 
+  border-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-radius: 2px !important;  /* 极小圆角更时尚 */
+  font-weight: 500;
+  letter-spacing: 1px;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  &:hover, &:focus {
+    background-color: #c4a77d !important; /* 悬浮变金 */
+    border-color: #c4a77d !important;
+    transform: translateY(-1px); 
+    box-shadow: 0 4px 12px rgba(196, 167, 125, 0.3);
+  }
 }
 
-.el-dialog:not(.is-fullscreen) {
-  margin-top: 6vh !important;
+/* --- B. 成功按钮（Success）：通常是新增/发布 --- */
+.el-button--success {
+  background-color: #1a1a1a !important; 
+  border-color: #1a1a1a !important;
+  border-radius: 2px !important;
+  &:hover {
+    background-color: #c4a77d !important;
+    border-color: #c4a77d !important;
+  }
 }
 
-.el-dialog__wrapper.scrollbar .el-dialog .el-dialog__body {
-  overflow: auto;
-  overflow-x: hidden;
-  max-height: 70vh;
-  padding: 10px 20px 0;
+/* --- C. 默认按钮（Default）：取消、重置、导出 --- */
+.el-button--default {
+  border-radius: 2px !important;
+  border: 1px solid #d9d9d9 !important;
+  background: transparent !important;
+  color: #8c8c8c !important;
+  &:hover {
+    color: #1a1a1a !important;
+    border-color: #1a1a1a !important;
+    background-color: #fcfaf7 !important;
+  }
 }
 
+/* --- D. 文字按钮 --- */
+.el-button--text {
+  color: #c4a77d !important; /* 文字链接改为金色点缀 */
+  &:hover {
+    color: #1a1a1a !important;
+  }
+}
+
+/** 4. 弹窗样式高奢化 **/
+.el-dialog {
+  border-radius: 0px !important; /* 弹窗去圆角 */
+  .el-dialog__header {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 20px;
+    .el-dialog__title {
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+  }
+}
+
+/** 5. 表格样式 (保持并微调) **/
 .el-table {
-  .el-table__header-wrapper, .el-table__fixed-header-wrapper {
-    th {
-      word-break: break-word;
-      background-color: #f8f8f9;
-      color: #515a6e;
-      height: 40px;
-      font-size: 13px;
-    }
+  .el-table__header-wrapper th {
+    background-color: #fcfaf7 !important; /* 表头改为米白色 */
+    color: #1a1a1a;
+    font-weight: 600;
   }
-
-  .el-table__body-wrapper {
-    .el-button [class*="el-icon-"] + span {
-      margin-left: 1px;
-    }
+  .el-table__body-wrapper .el-button [class*="el-icon-"] + span {
+    margin-left: 3px;
   }
 }
 
-/** 表单布局 **/
-.form-header {
-  font-size: 15px;
-  color: #6379bb;
-  border-bottom: 1px solid #ddd;
-  margin: 8px 10px 25px 10px;
-  padding-bottom: 5px
-}
-
-/** 表格布局 **/
+/** 6. 分页与搜索 (保持逻辑) **/
 .pagination-container {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
 }
 
-/* tree border */
-.tree-border {
-  margin-top: 5px;
-  border: 1px solid #e5e6e7;
-  background: #FFFFFF none;
-  border-radius: 4px;
+.query-form .el-form-item__content .el-button {
+  padding: 8px 16px;
+  height: 32px;
 }
 
-/* el menu */
-.el-menu-item,
-.el-sub-menu {
-  .svg-icon + span {
-    margin-left: 5px;
-  }
+/** 7. 图片圆角与预览 **/
+.img-circle { border-radius: 50%; }
+.img-lg { width: 120px; height: 120px; }
+
+/** 8. 全局 Loading 变金线 **/
+::v-deep .el-loading-spinner .path {
+  stroke: #c4a77d !important;
 }
 
-.el-menu--horizontal .el-menu--popup {
-  min-width: 120px !important;
-}
+/* 补全之前定义过的 Sass 变量补丁 */
+$espresso: #2c2a26;
+$bone: #f8f5f0;
+$taupe: #8c8379;
 
-@media (max-width: 768px) {
-  .pagination-container .el-pagination > .el-pagination__jump {
-    display: none !important;
-  }
-  .pagination-container .el-pagination > .el-pagination__sizes {
-    display: none !important;
-  }
-}
-
-.el-table .fixed-width .el-button--mini {
-  padding-left: 0;
-  padding-right: 0;
-  width: inherit;
-}
-
-/** 表格更多操作下拉样式 */
-.el-table .el-dropdown-link,.el-table .el-dropdown-selfdefine {
-	cursor: pointer;
-	margin-left: 5px;
-}
-
-.el-table .el-dropdown, .el-icon-arrow-down {
-  font-size: 12px;
-}
-
-.el-tree-node__content > .el-checkbox {
-  margin-right: 8px;
-}
-
-.list-group-striped > .list-group-item {
-  border-left: 0;
-  border-right: 0;
-  border-radius: 0;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.list-group {
-  padding-left: 0px;
-  list-style: none;
-}
-
-.list-group-item {
-  border-bottom: 1px solid #e7eaec;
-  border-top: 1px solid #e7eaec;
-  margin-bottom: -1px;
-  padding: 11px 0px;
-  font-size: 13px;
-}
-
-.pull-right {
-  float: right !important;
-}
-
-.el-card__header {
-  padding: 14px 15px 7px;
-  min-height: 40px;
-}
-
-.el-card__body {
-  padding: 15px 20px 20px 20px;
-}
-
-.card-box {
-  margin-bottom: 10px;
-}
-
-/* button color */
-.el-button--cyan.is-active,
-.el-button--cyan:active {
-  background: #20B2AA;
-  border-color: #20B2AA;
-  color: #FFFFFF;
-}
-
-.el-button--cyan:focus,
-.el-button--cyan:hover {
-  background: #48D1CC;
-  border-color: #48D1CC;
-  color: #FFFFFF;
-}
-
-.el-button--cyan {
-  background-color: #20B2AA;
-  border-color: #20B2AA;
-  color: #FFFFFF;
-}
-
-/* text color */
-.text-navy {
-  color: #1ab394;
-}
-
-.text-primary {
-  color: inherit;
-}
-
-.text-success {
-  color: #1c84c6;
-}
-
-.text-info {
-  color: #23c6c8;
-}
-
-.text-warning {
-  color: #f8ac59;
-}
-
-.text-danger {
-  color: #ed5565;
-}
-
-.text-muted {
-  color: #888888;
-}
-
-/* image */
-.img-circle {
-  border-radius: 50%;
-}
-
-.img-lg {
-  width: 120px;
-  height: 120px;
-}
-
-.avatar-upload-preview {
-  position: relative;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  box-shadow: 0 0 4px #ccc;
-  overflow: hidden;
-}
-
-/* 拖拽列样式 */
-.sortable-ghost {
-  opacity: .8;
-  color: #fff !important;
-  background: #42b983 !important;
-}
-
-.top-right-btn {
-  position: relative;
-  float: right;
-}
-
-/* 分割面板样式 */
-.splitpanes.default-theme .splitpanes__pane {
-  background-color: #fff!important;
-}
+.text-primary { color: #1a1a1a !important; }
+.text-success { color: #c4a77d !important; }

@@ -46,4 +46,49 @@
         where id = #{id}
     </update>
 
+    <insert id="insertWardrobeItem" parameterType="WardrobeItem" useGeneratedKeys="true" keyProperty="id">
+        insert into wardrobe_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="category != null and category != ''">category,</if>
+            <if test="color != null">color,</if>
+            <if test="season != null">season,</if>
+            <if test="price != null">price,</if>
+            <if test="isCommon != null">is_common,</if>
+            <if test="style != null">style,</if>
+            <if test="isFavorite != null">is_favorite,</if>
+            <if test="imgUrl != null">img_url,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="category != null and category != ''">#{category},</if>
+            <if test="color != null">#{color},</if>
+            <if test="season != null">#{season},</if>
+            <if test="price != null">#{price},</if>
+            <if test="isCommon != null">#{isCommon},</if>
+            <if test="style != null">#{style},</if>
+            <if test="isFavorite != null">#{isFavorite},</if>
+            <if test="imgUrl != null">#{imgUrl},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate()
+        </trim>
+    </insert>
+
+    <select id="selectWardrobeItemById" parameterType="Long" resultMap="WardrobeItemResult">
+        <include refid="selectWardrobeItemVo"/>
+        where id = #{id}
+    </select>
+
+    <delete id="deleteWardrobeItemById" parameterType="Long">
+        delete from wardrobe_item where id = #{id}
+    </delete>
+
+    <delete id="deleteWardrobeItemByIds" parameterType="String">
+        delete from wardrobe_item where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>
