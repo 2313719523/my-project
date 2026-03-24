@@ -31,7 +31,7 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
     private final AiRecommendService localRuleService;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate; // 注入数据库操作类，用于匹配图片
+    private JdbcTemplate jdbcTemplate;
 
     public DouBaoAIServiceImpl(@Qualifier("localRuleService") AiRecommendService localRuleService) {
         this.localRuleService = localRuleService;
@@ -45,7 +45,6 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
     @Override
     public AiRecommendResponse getOutfitRecommendation(AiRecommendRequest request) {
         log.info("【豆包AI】开始处理推荐请求: {}", request);
-
         int maxRetries = 3;
         AtomicInteger retryCount = new AtomicInteger(0);
 
@@ -53,38 +52,24 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
             try {
                 String prompt = buildPrompt(request);
                 String aiResponseText = callDouBaoAPI(prompt, retryCount.get() + 1);
-                // 核心改动：解析的同时去数据库找图
+                // 执行解析并进行多级图片匹配
                 AiRecommendResponse response = parseAndMatchImages(aiResponseText);
-                log.info("【豆包AI】推荐及图片匹配成功");
                 return response;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 retryCount.incrementAndGet();
-                log.warn("【豆包AI】第{}次调用失败: {}", retryCount.get(), e.getMessage());
+                log.warn("【豆包AI】尝试第{}次失败: {}", retryCount.get(), e.getMessage());
                 if (retryCount.get() >= maxRetries) {
                     return localRuleService.getOutfitRecommendation(request);
                 }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return localRuleService.getOutfitRecommendation(request);
-                }
-            } catch (Exception e) {
-                log.error("【豆包AI】逻辑执行异常，降级处理", e);
-                return localRuleService.getOutfitRecommendation(request);
             }
         }
         return localRuleService.getOutfitRecommendation(request);
     }
 
     private String buildPrompt(AiRecommendRequest request) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("你是一位专业的穿搭顾问。请为用户推荐穿搭方案。\n");
-        prompt.append("要求：必须返回JSON格式。包含字段：recommendation(总评), reason(理由), styleTips(技巧), temperatureAdvice(温度建议), ");
-        prompt.append("items(单品列表，每个单品含name, type, color)。\n");
-        prompt.append("注意：type字段请务必从以下词汇中选择：T恤, 衬衫, 短裤, 开衫, 半身裙, 连衣裙, 玛丽珍, 牛奶裤, 皮鞋, 卫衣, 西装裤, 运动背心, 运动鞋。\n");
-        prompt.append("用户情况：场合-").append(request.getOccasion()).append("，温度-").append(request.getTemperature()).append("℃。");
-        return prompt.toString();
+        return "你是一位专业的穿搭顾问。请返回JSON格式，包含字段：recommendation, reason, styleTips, temperatureAdvice, items(含name, type, color)。" +
+                "注意：type务必从[T恤, 衬衫, 短裤, 开衫, 半身裙, 连衣裙, 玛丽珍, 牛奶裤, 皮鞋, 卫衣, 西装裤, 运动背心, 运动鞋]中选择。" +
+                "用户需求：场合-" + request.getOccasion() + "，温度-" + request.getTemperature() + "℃。";
     }
 
     private String callDouBaoAPI(String prompt, int attempt) throws IOException {
@@ -112,7 +97,6 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
     }
 
     private AiRecommendResponse parseAndMatchImages(String aiResponseText) {
-        // 去掉可能存在的Markdown格式
         String cleanJson = aiResponseText.replace("```json", "").replace("```", "").trim();
         JSONObject json = JSON.parseObject(cleanJson);
 
@@ -133,33 +117,43 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
                 item.setType(obj.getString("type"));
                 item.setColor(obj.getString("color"));
 
-                // --- 毕设亮点：去数据库检索图片路径 ---
-                String sql = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1";
-                try {
-                    // 1. 获取 AI 返回的颜色，并做非空处理
-                    String color = item.getColor() != null ? item.getColor() : "";
+                // --- 核心改动：调用修正了字段名(category)和查询方式(queryForList)的方法 ---
+                item.setMaterial(getWardrobeImage(item.getType(), item.getColor()));
 
-                    // 2. 取颜色的关键字进行模糊查询（比如“深蓝色”取“蓝”，“白色”取“白”）
-                    // 建议取 1 到 2 个字，这样匹配率最高
-                    String colorKey = color.length() >= 1 ? color.substring(0, Math.min(2, color.length())) : "";
-
-                    // 3. 执行 SQL 查询
-                    // 注意：这里的 sql 应该是 SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1
-                    String dbImgUrl = jdbcTemplate.queryForObject(sql, String.class, item.getType(), "%" + colorKey + "%");
-
-                    // 4. 直接设置路径（因为你数据库里已经存了 /profile/upload/T恤1.jpg）
-                    item.setMaterial(dbImgUrl);
-
-                    log.info("成功匹配图片: 类别={}, 颜色={}, 路径={}", item.getType(), color, dbImgUrl);
-                } catch (Exception e) {
-                    // 如果数据库没搜到，或者报错了，给一个默认图，防止前端图片碎裂
-                    log.warn("未能匹配到图片: 类别={}, 颜色={}", item.getType(), item.getColor());
-                    item.setMaterial("/profile/upload/default.png");
-                }
                 clothingItems.add(item);
             }
         }
         response.setItems(clothingItems);
         return response;
+    }
+
+    /**
+     * 智能搜图算法：确保使用真实的 category 字段
+     */
+    private String getWardrobeImage(String type, String color) {
+        String defaultPath = "/profile/upload/default.png";
+        try {
+            // 提取颜色核心字
+            String colorKey = (color != null && color.length() > 0) ? color.substring(0, 1) : "";
+
+            // 1. 第一级：精准匹配 (category + color)
+            String sql1 = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1";
+            List<String> list1 = jdbcTemplate.queryForList(sql1, String.class, type, "%" + colorKey + "%");
+            if (!list1.isEmpty()) return list1.get(0);
+
+            // 2. 第二级：降级匹配 (仅 category)
+            String sql2 = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? LIMIT 1";
+            List<String> list2 = jdbcTemplate.queryForList(sql2, String.class, type);
+            if (!list2.isEmpty()) return list2.get(0);
+
+            // 3. 第三级：保底模糊匹配 (name 包含 AI 给的关键词)
+            String sql3 = "SELECT img_url FROM sys_wardrobe_item WHERE name LIKE ? LIMIT 1";
+            List<String> list3 = jdbcTemplate.queryForList(sql3, String.class, "%" + type + "%");
+            if (!list3.isEmpty()) return list3.get(0);
+
+        } catch (Exception e) {
+            log.error("匹配图片异常: {}", e.getMessage());
+        }
+        return defaultPath;
     }
 }

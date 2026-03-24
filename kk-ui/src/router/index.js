@@ -135,14 +135,22 @@ export const constantRoutes = [
   path: '/wardrobe',
   component: Layout,
   hidden: false,
-  redirect: '/wardrobe/item',
-  meta: { title: '衣橱', icon: 'el-icon-suitcase' },
+  redirect: '/wardrobe/home', // 修改默认跳转到首页
+  meta: { title: '我的衣橱', icon: 'el-icon-suitcase' },
   children: [
     {
+      path: 'home',
+      // 对应你新建的 WardrobeHome.vue 文件
+      component: () => import('@/views/wardrobe/WardrobeHome'), 
+      name: 'WardrobeHome',
+      meta: { title: '衣橱首页', icon: 'el-icon-s-home' }
+    },
+    {
       path: 'item',
+      // 对应你原本的单品管理页面
       component: () => import('@/views/wardrobe/item/index'),
       name: 'WardrobeItem',
-      meta: { title: '衣橱单品', icon: 'el-icon-suitcase' }
+      meta: { title: '单品管理', icon: 'el-icon-s-operation' }
     }
   ]
 }

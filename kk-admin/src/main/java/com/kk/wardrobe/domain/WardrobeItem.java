@@ -39,6 +39,18 @@ public class WardrobeItem extends BaseEntity {
     @Excel(name = "添加时间", width = 30, dateFormat = "yyyy-MM-dd")
     private String addTime;
 
+    /** 风格 (如: 复古, 极简, 甜美) */
+    @Excel(name = "风格")
+    private String style;
+
+    /** 是否收藏 (0=未收藏, 1=已收藏) */
+    @Excel(name = "是否收藏")
+    private String isFavorite;
+
+    /** 图片路径 */
+    @Excel(name = "图片路径")
+    private String imgUrl;
+
     public Long getId() {
         return id;
     }
@@ -102,4 +114,11 @@ public class WardrobeItem extends BaseEntity {
     public void setAddTime(String addTime) {
         this.addTime = addTime;
     }
+
+    public String getStyle() { return style; }
+    public void setStyle(String style) { this.style = style; }
+    public String getIsFavorite() { return isFavorite; }
+    public void setIsFavorite(String isFavorite) { this.isFavorite = isFavorite; }
+    public String getImgUrl() { return imgUrl; }
+    public void setImgUrl(String imgUrl) { this.imgUrl = imgUrl; }
 }
