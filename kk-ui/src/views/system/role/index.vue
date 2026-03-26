@@ -42,13 +42,6 @@
         </el-table-column>
         <el-table-column label="角色名称" prop="roleName" :show-overflow-tooltip="true" />
         <el-table-column label="权限字符" prop="roleKey" :show-overflow-tooltip="true" />
-        <el-table-column label="等级" align="center" width="120">
-          <template slot-scope="scope">
-            <el-tag :type="scope.row.roleId === 1 ? 'warning' : 'info'" effect="dark">
-              {{ scope.row.roleId === 1 ? '超级管理' : '职能角色' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="状态" align="center" width="100">
           <template slot-scope="scope">
             <el-switch v-model="scope.row.status" active-value="0" inactive-value="1" active-color="#c9ab8d" @change="handleStatusChange(scope.row)" />
@@ -57,7 +50,7 @@
         <el-table-column label="操作" align="center" width="220">
           <template slot-scope="scope" v-if="scope.row.roleId !== 1">
             <el-button size="mini" type="text" icon="el-icon-edit" class="btn-edit" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button size="mini" type="text" icon="el-icon-circle-check" class="btn-edit" @click="handleDataScope(scope.row)">权限</el-button>
+            <el-button size="mini" type="text" icon="el-icon-circle-check" class="btn-edit" @click="handleDataScope(scope.row)">数据权限</el-button>
             <el-button size="mini" type="text" icon="el-icon-delete" class="btn-delete" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -75,8 +68,6 @@
         </el-form-item>
         <el-form-item label="菜单权限">
           <div class="tree-container">
-            <el-checkbox v-model="menuExpand" @change="handleCheckedTreeExpand($event, 'menu')">展开</el-checkbox>
-            <el-checkbox v-model="menuNodeAll" @change="handleCheckedTreeNodeAll($event, 'menu')">全选</el-checkbox>
             <el-tree
               class="tree-border glass-tree"
               :data="menuOptions"
@@ -114,8 +105,7 @@
 </template>
 
 <script>
-// 这里保持你原来的所有 import 和 methods 逻辑不变，只需确保样式类名对应上即可
-import { listRole, getRole, delRole, addRole, updateRole, dataScope, changeRoleStatus, deptTreeSelect } from "@/api/system/role"
+import { listRole, getRole, delRole, addRole, updateRole, dataScope, changeRoleStatus } from "@/api/system/role"
 import { treeselect as menuTreeselect, roleMenuTreeselect } from "@/api/system/menu"
 
 export default {
@@ -125,7 +115,6 @@ export default {
     return {
       loading: true,
       ids: [],
-      single: true,
       multiple: true,
       showSearch: true,
       total: 0,
@@ -133,13 +122,9 @@ export default {
       title: "",
       open: false,
       openDataScope: false,
-      menuExpand: false,
-      menuNodeAll: false,
-      dateRange: [],
       menuOptions: [],
       dataScopeOptions: [
         { value: "1", label: "全部数据权限" },
-        { value: "2", label: "自定数据权限" },
         { value: "5", label: "仅本人数据权限" }
       ],
       queryParams: { pageNum: 1, pageSize: 10, roleName: undefined, roleKey: undefined, status: undefined },
@@ -153,35 +138,34 @@ export default {
   },
   created() { this.getList() },
   methods: {
-    // ... 这里粘贴你原本 script 里的所有 method 方法，逻辑完全通用 ...
-    // 注意：确保 handleAdd, handleUpdate 等方法里的 reset() 正常调用
     getList() {
       this.loading = true;
-      listRole(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
-          this.roleList = response.rows;
-          this.total = response.total;
-          this.loading = false;
-        }
-      );
+      listRole(this.queryParams).then(response => {
+        this.roleList = response.rows;
+        this.total = response.total;
+        this.loading = false;
+      });
     },
     handleQuery() { this.queryParams.pageNum = 1; this.getList(); },
-    resetQuery() { this.dateRange = []; this.resetForm("queryForm"); this.handleQuery(); },
+    resetQuery() { this.resetForm("queryForm"); this.handleQuery(); },
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.roleId);
-      this.single = selection.length!=1;
       this.multiple = !selection.length;
     },
     handleStatusChange(row) {
       let text = row.status === "0" ? "启用" : "停用";
-      this.$modal.confirm('确认要"' + text + '""' + row.roleName + '"角色吗？').then(function() {
+      this.$modal.confirm('确认要"' + text + '""' + row.roleName + '"角色吗？').then(() => {
         return changeRoleStatus(row.roleId, row.status);
       }).then(() => {
         this.$modal.msgSuccess(text + "成功");
-      }).catch(function() {
-        row.status = row.status === "0" ? "1" : "0";
       });
     },
-    handleAdd() { this.reset(); menuTreeselect().then(res => { this.menuOptions = res.data; }); this.open = true; this.title = "✨ 新增职能角色"; },
+    handleAdd() {
+      this.reset();
+      menuTreeselect().then(res => { this.menuOptions = res.data; });
+      this.open = true;
+      this.title = "✨ 新增职能角色";
+    },
     handleUpdate(row) {
       this.reset();
       const roleId = row.roleId || this.ids;
@@ -191,47 +175,68 @@ export default {
           this.form = response.data;
           this.open = true;
           this.$nextTick(() => {
-            res.checkedKeys.forEach(v => { this.$refs.menu.setChecked(v, true, false); });
+            let checkedKeys = res.checkedKeys || [];
+            if (this.$refs.menu) {
+              this.$refs.menu.setCheckedKeys(checkedKeys);
+            }
           });
         });
       });
       this.title = "📝 修改角色配置";
     },
+    /** 分配数据权限操作 */
+    handleDataScope(row) {
+      this.reset();
+      // 不再获取部门树，直接打开配置弹窗
+      getRole(row.roleId).then(response => {
+        this.form = response.data;
+        this.openDataScope = true;
+        this.title = "分配数据权限";
+      });
+    },
     submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
-          this.form.menuIds = this.$refs.menu.getCheckedKeys().concat(this.$refs.menu.getHalfCheckedKeys());
+          this.form.menuIds = this.$refs.menu ? this.$refs.menu.getCheckedKeys() : [];
           if (this.form.roleId != undefined) {
-            updateRole(this.form).then(() => { this.$modal.msgSuccess("修改成功"); this.open = false; this.getList(); });
+            updateRole(this.form).then(() => {
+              this.$modal.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
+            });
           } else {
-            addRole(this.form).then(() => { this.$modal.msgSuccess("新增成功"); this.open = false; this.getList(); });
+            addRole(this.form).then(() => {
+              this.$modal.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
+            });
           }
         }
       });
     },
-    handleDelete(row) {
-      const roleIds = row.roleId || this.ids;
-      this.$modal.confirm('确定移除编号为"' + roleIds + '"的角色吗？').then(() => { return delRole(roleIds); }).then(() => { this.getList(); this.$modal.msgSuccess("删除成功"); });
+    submitDataScope() {
+      if (this.form.roleId != undefined) {
+        // 固定为空数组，因为已经移除了自定部门选择
+        this.form.deptIds = [];
+        dataScope(this.form).then(() => {
+          this.$modal.msgSuccess("修改成功");
+          this.openDataScope = false;
+          this.getList();
+        });
+      }
     },
-    handleDataScope(row) { this.reset(); getRole(row.roleId).then(res => { this.form = res.data; this.openDataScope = true; }); },
-    submitDataScope() { dataScope(this.form).then(() => { this.$modal.msgSuccess("修改成功"); this.openDataScope = false; this.getList(); }); },
     cancel() { this.open = false; this.reset(); },
     reset() {
-      if (this.$refs.menu != undefined) { this.$refs.menu.setCheckedKeys([]); }
-      this.form = { roleId: undefined, roleName: undefined, roleKey: undefined, roleSort: 0, status: "0", menuIds: [], menuCheckStrictly: true };
+      if (this.$refs.menu) { this.$refs.menu.setCheckedKeys([]); }
+      this.form = { roleId: undefined, roleName: undefined, roleKey: undefined, status: "0", menuIds: [], deptIds: [], dataScope: "1", menuCheckStrictly: true };
       this.resetForm("form");
-    },
-    handleCheckedTreeExpand(value, type) {
-      let treeList = this.menuOptions;
-      for (let i = 0; i < treeList.length; i++) { this.$refs.menu.store.nodesMap[treeList[i].id].expanded = value; }
-    },
-    handleCheckedTreeNodeAll(value, type) { this.$refs.menu.setCheckedNodes(value ? this.menuOptions: []); }
+    }
   }
 };
 </script>
 
 <style scoped lang="scss">
-/* 直接复用会员管理的样式，确保视觉统一 */
+/* 保持原有毛玻璃样式 */
 .member-glass-container {
   min-height: calc(100vh - 84px);
   padding: 30px;
@@ -252,7 +257,6 @@ export default {
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     display: flex; align-items: center;
-    &.search-bar { border-radius: 20px; padding: 10px 20px; }
   }
 
   .table-wrapper {
@@ -284,6 +288,8 @@ export default {
     padding: 15px;
     border-radius: 12px;
     border: 1px solid #eee;
+    max-height: 200px;
+    overflow-y: auto;
   }
 }
 
@@ -292,7 +298,6 @@ export default {
     border-radius: 30px !important;
     background: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(20px);
-    .el-dialog__title { font-weight: 800; }
   }
   .btn-confirm { background: #333 !important; color: white; border-radius: 15px; padding: 10px 25px; }
   .btn-cancel { border-radius: 15px; padding: 10px 25px; }

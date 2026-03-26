@@ -55,25 +55,28 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="会员等级" align="center" width="120">
+        <el-table-column label="所属角色" align="center" min-width="120">
           <template slot-scope="scope">
-            <el-tag :type="scope.row.userId === 1 ? 'warning' : 'success'" effect="dark" class="level-tag">
-              {{ scope.row.userId === 1 ? '超级博主' : '潮流达人' }}
+            <el-tag 
+              v-for="role in scope.row.roles" 
+              :key="role.roleId" 
+              size="mini" 
+              class="role-mini-tag"
+            >
+              {{ role.roleName }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="状态控制" align="center" width="100">
           <template slot-scope="scope">
-            <el-tooltip :content="scope.row.status === '0' ? '正常运行' : '已封禁'" placement="top">
-              <el-switch 
-                v-model="scope.row.status" 
-                active-value="0" 
-                inactive-value="1" 
-                active-color="#c9ab8d"
-                class="custom-switch"
-              ></el-switch>
-            </el-tooltip>
+            <el-switch 
+              v-model="scope.row.status" 
+              active-value="0" 
+              inactive-value="1" 
+              active-color="#c9ab8d"
+              @change="handleStatusChange(scope.row)"
+            ></el-switch>
           </template>
         </el-table-column>
 
@@ -86,28 +89,44 @@
       </el-table>
     </div>
 
-    <el-dialog :title="title" :visible.sync="open" width="450px" append-to-body class="fancy-dialog">
+    <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body class="fancy-dialog">
       <el-form ref="form" :model="form" :rules="rules" label-position="top">
-        <el-form-item label="会员昵称" prop="nickName">
-          <el-input v-model="form.nickName" placeholder="起个好听的名字" class="fancy-input" />
-        </el-form-item>
-        <el-form-item label="登录账号" prop="userName">
-          <el-input v-model="form.userName" placeholder="用于系统登录" class="fancy-input" />
-        </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="性别">
-              <el-select v-model="form.sex" style="width: 100%" class="fancy-input">
-                <el-option label="绅士" value="0" />
-                <el-option label="淑女" value="1" />
-              </el-select>
+            <el-form-item label="会员昵称" prop="nickName">
+              <el-input v-model="form.nickName" placeholder="起个好听的名字" class="fancy-input" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="登录账号" prop="userName">
+              <el-input v-model="form.userName" placeholder="用于系统登录" class="fancy-input" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="赋予权限角色" prop="roleIds">
+          <el-select v-model="form.roleIds" multiple placeholder="请选择角色" style="width: 100%" class="fancy-input">
+            <el-option
+              v-for="item in roleOptions"
+              :key="item.roleId"
+              :label="item.roleName"
+              :value="item.roleId"
+              :disabled="item.status == 1"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="初始密码" v-if="form.userId == undefined" prop="password">
+              <el-input v-model="form.password" placeholder="默认 123456" type="password" class="fancy-input" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="初始状态">
-              <el-radio-group v-underline v-model="form.status">
+              <el-radio-group v-model="form.status">
                 <el-radio label="0">正常</el-radio>
-                <el-radio label="1">停用</el-radio>
+                <el-radio label="1">封禁</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -115,14 +134,14 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button class="btn-cancel" @click="cancel">暂不</el-button>
-        <el-button class="btn-confirm" @click="submitForm">确认加入</el-button>
+        <el-button class="btn-confirm" @click="submitForm">确认保存</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { listUser, getUser, addUser, updateUser, delUser } from "@/api/system/user";
+import { listUser, getUser, addUser, updateUser, delUser, changeUserStatus } from "@/api/system/user";
 
 export default {
   name: "MemberManagement",
@@ -132,48 +151,69 @@ export default {
       ids: [],
       multiple: true,
       userList: [],
+      roleOptions: [], // 存储可选角色列表
       title: "",
       open: false,
-      form: { sex: "0", status: "0" },
+      form: {},
       rules: {
         userName: [{ required: true, message: "账号必填哦", trigger: "blur" }],
-        nickName: [{ required: true, message: "昵称必填哦", trigger: "blur" }]
+        nickName: [{ required: true, message: "昵称必填哦", trigger: "blur" }],
+        roleIds: [{ required: true, message: "请至少分配一个角色", trigger: "change" }]
       }
     };
   },
-  created() { this.getList(); },
+  created() { 
+    this.getList(); 
+  },
   methods: {
     getList() {
       this.loading = true;
       listUser().then(res => {
         this.userList = res.rows;
         this.loading = false;
-      }).catch(() => { this.loading = false; });
+      });
+    },
+    reset() {
+      this.form = { userId: undefined, userName: undefined, nickName: undefined, password: "123456", sex: "0", status: "0", roleIds: [] };
+      this.resetForm("form");
     },
     handleAdd() {
       this.reset();
-      this.open = true;
-      this.title = "✨ 邀约新会员";
+      // 调用 getUser 获取角色选项
+      getUser().then(response => {
+        this.roleOptions = response.roles;
+        this.open = true;
+        this.title = "✨ 邀约新会员";
+      });
     },
     handleUpdate(row) {
       this.reset();
-      this.form = { ...row };
-      this.open = true;
-      this.title = "📝 资料修缮";
+      const userId = row.userId;
+      // 获取用户信息及角色分配情况
+      getUser(userId).then(response => {
+        this.form = response.data;
+        this.roleOptions = response.roles;
+        this.form.roleIds = response.roleIds; // 这一步至关重要，用于回显已选角色
+        this.open = true;
+        this.title = "📝 资料修缮";
+      });
     },
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.userId);
-      this.multiple = !selection.length;
+    handleStatusChange(row) {
+      let text = row.status === "0" ? "启用" : "停用";
+      this.$modal.confirm('确认要' + text + '"' + row.nickName + '"吗？').then(function() {
+        return changeUserStatus(row.userId, row.status);
+      }).then(() => {
+        this.$modal.msgSuccess(text + "成功");
+      }).catch(function() {
+        row.status = row.status === "0" ? "1" : "0";
+      });
     },
     submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
-          if (this.form.userId === undefined) {
-            this.form.password = "123456"; // 默认密码
-          }
           const action = this.form.userId !== undefined ? updateUser : addUser;
           action(this.form).then(() => {
-            this.$modal.msgSuccess("操作成功啦！");
+            this.$modal.msgSuccess("保存成功啦！");
             this.open = false;
             this.getList();
           });
@@ -182,15 +222,18 @@ export default {
     },
     handleDelete(row) {
       const uIds = row.userId || this.ids;
-      this.$modal.confirm('确定要将这些潮流达人移出列表吗？').then(() => {
+      this.$modal.confirm('确定要移除这些会员吗？').then(() => {
         return delUser(uIds);
       }).then(() => {
         this.getList();
         this.$modal.msgSuccess("已成功移除");
       });
     },
-    reset() { this.form = { userId: undefined, userName: undefined, nickName: undefined, sex: "0", status: "0" }; },
-    cancel() { this.open = false; }
+    handleSelectionChange(selection) {
+      this.ids = selection.map(item => item.userId);
+      this.multiple = !selection.length;
+    },
+    cancel() { this.open = false; this.reset(); }
   }
 };
 </script>
@@ -206,15 +249,11 @@ export default {
   .welcome-section {
     margin-bottom: 30px;
     .page-title {
-      color: #333;
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      .sub-title { color: #888; font-size: 14px; font-weight: normal; margin-left: 10px; }
+      color: #333; font-size: 24px; font-weight: 800;
+      .sub-title { color: #888; font-size: 14px; margin-left: 10px; }
     }
   }
 
-  /* 胶囊栏 */
   .glass-toolbar {
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(15px);
@@ -222,75 +261,57 @@ export default {
     border-radius: 50px;
     margin-bottom: 25px;
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   }
 
-  /* 按钮特效 */
   .btn-gradient-add {
     background: linear-gradient(135deg, #c9ab8d 0%, #a88e72 100%) !important;
-    border: none;
-    border-radius: 20px;
-    padding: 10px 25px;
-    transition: all 0.3s;
-    &:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(201,171,141,0.4); }
+    border: none; border-radius: 20px;
   }
 
   .btn-glass-del {
     background: rgba(255, 255, 255, 0.5) !important;
-    border: 1px solid #ffeded !important;
-    color: #ff4949 !important;
-    border-radius: 20px;
+    border-radius: 20px; color: #ff4949 !important;
   }
 
-  /* 表格美化 */
   .table-wrapper {
     background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(20px);
-    border-radius: 25px;
-    padding: 20px;
+    border-radius: 25px; padding: 20px;
     border: 1px solid rgba(255,255,255,0.3);
   }
 
   .custom-glass-table {
     background: transparent !important;
-    ::v-deep tr { background: transparent !important; &:hover td { background: rgba(255,255,255,0.3) !important; } }
-    ::v-deep th.el-table__cell { background: transparent !important; color: #222; border-bottom: 2px solid #eee; }
-    ::v-deep td.el-table__cell { border-bottom: 1px solid rgba(0,0,0,0.03); }
+    ::v-deep tr { background: transparent !important; }
+    ::v-deep th.el-table__cell { background: transparent !important; color: #222; }
   }
 
-  /* 会员信息单元格 */
   .user-info-cell {
-    display: flex;
-    align-items: center;
+    display: flex; align-items: center;
     .user-avatar {
-      width: 40px; height: 40px;
-      background: #c9ab8d;
-      color: white;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; background: #c9ab8d; color: white;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
       font-weight: bold; margin-right: 12px;
     }
-    .u-nickname { font-weight: bold; color: #333; }
-    .u-account { font-size: 12px; color: #999; }
   }
 
-  .id-badge { color: #c9ab8d; font-family: 'Courier New', Courier, monospace; font-weight: bold; }
-  .btn-edit { color: #c9ab8d !important; font-weight: bold; }
-  .btn-delete { color: #ff6b6b !important; font-weight: bold; }
+  .role-mini-tag {
+    margin: 2px; border-radius: 8px; color: #c9ab8d; border: 1px solid #c9ab8d; background: transparent;
+  }
+
+  .id-badge { color: #c9ab8d; font-family: monospace; font-weight: bold; }
+  .btn-edit { color: #c9ab8d !important; }
+  .btn-delete { color: #ff6b6b !important; }
 }
 
-/* 弹窗高级感 */
 ::v-deep .fancy-dialog {
   .el-dialog {
     border-radius: 30px !important;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(20px);
-    .el-dialog__header { padding: 30px 30px 10px; .el-dialog__title { font-weight: 800; color: #444; } }
-    .el-form-item__label { font-weight: bold; color: #666; padding: 0; }
-    .fancy-input .el-input__inner { border-radius: 12px; border: 1px solid #eee; background: rgba(255,255,255,0.5); &:focus { border-color: #c9ab8d; } }
+    .fancy-input .el-input__inner { border-radius: 12px; background: rgba(255,255,255,0.5); }
   }
-  .btn-confirm { background: #333 !important; color: white; border: none; border-radius: 15px; padding: 12px 30px; }
-  .btn-cancel { border-radius: 15px; padding: 12px 30px; border: 1px solid #eee; }
+  .btn-confirm { background: #333 !important; color: white; border-radius: 15px; padding: 12px 30px; }
+  .btn-cancel { border-radius: 15px; padding: 12px 30px; }
 }
 </style>
