@@ -25,7 +25,8 @@ public class ResourcesConfig implements WebMvcConfigurer
     {
         registry.addResourceHandler("/profile/**")
                 .addResourceLocations("file:" + KKConfig.getProfile() + "/");
-
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("file:" + KKConfig.getProfile() + "/");
         registry.addResourceHandler("/swagger-ui/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/springfox-swagger-ui/")
                 .setCacheControl(CacheControl.maxAge(5, TimeUnit.HOURS).cachePublic());

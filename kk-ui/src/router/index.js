@@ -182,6 +182,20 @@ export const constantRoutes = [
     meta: { title: '穿搭管理', icon: 'clothes' }
   }]
 }
+,
+{
+    path: '/outfit/audit',
+    component: Layout,
+    hidden: true, 
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/outfit/audit/index'),
+        name: 'OutfitAudit',
+        meta: { title: '穿搭审核中心', activeMenu: '/monitor/online' }
+      }
+    ]
+  }
 
 ] // constantRoutes 数组结束
 
@@ -261,6 +275,7 @@ export const dynamicRoutes = [
       }
     ]
   },
+
   {
     path: '/outfit/outfit',
     component: Layout,

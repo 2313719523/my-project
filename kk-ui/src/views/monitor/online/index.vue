@@ -46,7 +46,7 @@
             <span class="user-name-tag">{{ scope.row.userName }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="所属组织" align="center" prop="deptName" />
+        <!-- <el-table-column label="所属组织" align="center" prop="deptName" /> -->
         <el-table-column label="最近活跃地点" align="center" prop="loginLocation" />
         <el-table-column label="发布终端" align="center" prop="os" />
         <el-table-column label="活跃时间" align="center" prop="loginTime" width="180">
@@ -117,9 +117,13 @@ export default {
       this.handleQuery()
     },
     // 模拟审核内容弹窗
-    handleAudit(row) {
-      this.$modal.msgSuccess("加载用户 " + row.userName + " 的穿搭发布记录进行合规性校验...");
-    },
+   handleAudit(row) {
+  // row.username 是你在在线用户列表里拿到的用户名
+  this.$router.push({
+    path: '/outfit/audit',
+    query: { userName: row.username } 
+  });
+},
     handleForceLogout(row) {
       this.$modal.confirm('检测到异常活跃或违规行为，是否强退用户 "' + row.userName + '"？').then(function() {
         return forceLogout(row.tokenId)

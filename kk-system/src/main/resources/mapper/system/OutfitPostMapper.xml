@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kk.system.mapper.OutfitPostMapper">
+
+    <resultMap type="com.kk.system.domain.OutfitPost" id="OutfitPostResult">
+        <result property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="image" column="image" />
+        <result property="tags" column="tags" />
+        <result property="userId" column="user_id" />
+        <result property="username" column="username" />
+        <result property="avatar" column="avatar" />
+        <result property="likeCount" column="like_count" />
+        <result property="commentCount" column="comment_count" />
+        <result property="collectCount" column="collect_count" />
+        <result property="category" column="category" />
+        <result property="status" column="status" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <select id="selectOutfitPostList" parameterType="com.kk.system.domain.OutfitPost" resultMap="OutfitPostResult">
+        select id, title, content, image, tags, user_id, username, avatar, like_count, comment_count, collect_count, category, status, create_time, update_time
+        from outfit_post
+        <where>
+            <if test="username != null and username != ''"> and username like concat('%', #{username}, '%')</if>
+            <if test="status != null and status != ''"> and status = #{status}</if>
+            <if test="title != null and title != ''"> and title like concat('%', #{title}, '%')</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <update id="updateOutfitPostStatus" parameterType="com.kk.system.domain.OutfitPost">
+        update outfit_post
+        <set>
+            <if test="status != null">status = #{status},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>
