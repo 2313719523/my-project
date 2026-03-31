@@ -7,90 +7,81 @@ import org.springframework.stereotype.Service;
 import com.kk.outfit.mapper.OutfitMapper;
 import com.kk.outfit.domain.Outfit;
 import com.kk.outfit.service.IOutfitService;
+// 必须导入这个VO类，否则selectOutfitStatistics会报错
+import com.kk.system.domain.vo.OutfitStatVo;
 
 /**
  * 穿搭主Service业务层处理
- * 
- * @author kk
- * @date 2026-01-27
  */
 @Service
 public class OutfitServiceImpl implements IOutfitService
 {
     @Autowired
-    private OutfitMapper OutfitMapper;
+    private OutfitMapper outfitMapper;
+
+    /**
+     * 实现首页看板统计数据接口
+     * 这是解决你报错的关键代码
+     */
+    @Override
+    public OutfitStatVo selectOutfitStatistics()
+    {
+        return outfitMapper.selectOutfitStatistics();
+    }
 
     /**
      * 查询穿搭主
-     * 
-     * @param outfitId 穿搭主主键
-     * @return 穿搭主
      */
     @Override
     public Outfit selectOutfitByOutfitId(Long outfitId)
     {
-        return OutfitMapper.selectOutfitByOutfitId(outfitId);
+        return outfitMapper.selectOutfitByOutfitId(outfitId);
     }
 
     /**
      * 查询穿搭主列表
-     * 
-     * @param Outfit 穿搭主
-     * @return 穿搭主
      */
     @Override
-    public List<Outfit> selectOutfitList(Outfit Outfit)
+    public List<Outfit> selectOutfitList(Outfit outfit)
     {
-        return OutfitMapper.selectOutfitList(Outfit);
+        return outfitMapper.selectOutfitList(outfit);
     }
 
     /**
      * 新增穿搭主
-     * 
-     * @param Outfit 穿搭主
-     * @return 结果
      */
     @Override
-    public int insertOutfit(Outfit Outfit)
+    public int insertOutfit(Outfit outfit)
     {
-        Outfit.setCreateTime(DateUtils.getNowDate());
-        return OutfitMapper.insertOutfit(Outfit);
+        outfit.setCreateTime(DateUtils.getNowDate());
+        return outfitMapper.insertOutfit(outfit);
     }
 
     /**
      * 修改穿搭主
-     * 
-     * @param Outfit 穿搭主
-     * @return 结果
      */
     @Override
-    public int updateOutfit(Outfit Outfit)
+    public int updateOutfit(Outfit outfit)
     {
-        Outfit.setUpdateTime(DateUtils.getNowDate());
-        return OutfitMapper.updateOutfit(Outfit);
+        outfit.setUpdateTime(DateUtils.getNowDate());
+        return outfitMapper.updateOutfit(outfit);
     }
 
     /**
      * 批量删除穿搭主
-     * 
-     * @param outfitIds 需要删除的穿搭主主键
-     * @return 结果
      */
     @Override
     public int deleteOutfitByOutfitIds(Long[] outfitIds)
     {
-        return OutfitMapper.deleteOutfitByOutfitIds(outfitIds);
+        return outfitMapper.deleteOutfitByOutfitIds(outfitIds);
     }
 
     /**
      * 删除穿搭主信息
-     * 
-     * @param outfitId 穿搭主主键
-     * @return 结果
      */
     @Override
     public int deleteOutfitByOutfitId(Long outfitId)
     {
-        return OutfitMapper.deleteOutfitByOutfitId(outfitId);
+        return outfitMapper.deleteOutfitByOutfitId(outfitId);
     }
 }

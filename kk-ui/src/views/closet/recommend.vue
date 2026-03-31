@@ -1,276 +1,3 @@
-<template>
-  <div class="luxury-container">
-    <div class="ambient-glow"></div>
-    
-    <div class="content-wrapper">
-      <header class="hero-header">
-        <div class="brand-eyebrow">PERSONAL STYLING CURATION</div>
-        <h1 class="main-title">智能衣橱灵感</h1>
-        <div class="title-accent"></div>
-        <p class="desc-text">融合气候感知与美学算法的私人订制方案</p>
-      </header>
-
-      <div class="main-grid">
-        <div class="config-panel">
-          <div class="panel-inner">
-            <div class="section-tag">Parameters / 需求输入</div>
-            
-            <!-- 使用 recommend1.vue 的表单结构，但样式保持当前 -->
-            <el-form ref="form" :model="formData" label-position="top">
-              <!-- 场合选择 -->
-              <el-form-item label="场合" prop="occasion" required>
-                <el-select v-model="formData.occasion" placeholder="请选择场合" class="custom-select">
-                  <el-option label="日常办公" value="日常办公" />
-                  <el-option label="旅游出行" value="旅游出行" />
-                  <el-option label="家庭聚会" value="家庭聚会" />
-                  <el-option label="毕业典礼" value="毕业典礼" />
-                  <el-option label="生日派对" value="生日派对" />
-                  <el-option label="商务会议" value="商务会议" />
-                  <el-option label="朋友聚会" value="朋友聚会" />
-                  <el-option label="约会" value="约会" />
-                  <el-option label="婚礼宾客" value="婚礼宾客" />
-                  <el-option label="面试场合" value="面试场合" />
-                  <el-option label="运动健身" value="运动健身" />
-                  <el-option label="逛街购物" value="逛街购物" />
-                  <el-option label="艺术展览" value="艺术展览" />
-                  <el-option label="音乐会/剧院" value="音乐会/剧院" />
-                  <el-option label="海边度假" value="海边度假" />
-                  <el-option label="滑雪运动" value="滑雪运动" />
-                  <el-option label="户外徒步" value="户外徒步" />
-                  <el-option label="公司年会" value="公司年会" />
-                  <el-option label="商务晚宴" value="商务晚宴" />
-                  <el-option label="产品发布会" value="产品发布会" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 年龄输入 -->
-              <el-form-item label="年龄" prop="age" required>
-                <el-input-number 
-                  v-model="formData.age" 
-                  :min="16" 
-                  :max="60" 
-                  controls-position="right"
-                  class="custom-input"
-                />
-              </el-form-item>
-
-              <!-- 身高体重 -->
-              <div class="input-row">
-                <el-form-item label="身高(cm)" prop="height">
-                  <el-input-number 
-                    v-model="formData.height" 
-                    :min="140" 
-                    :max="220" 
-                    controls-position="right"
-                    class="custom-input"
-                  />
-                </el-form-item>
-                <el-form-item label="体重(kg)" prop="weight">
-                  <el-input-number 
-                    v-model="formData.weight" 
-                    :min="35" 
-                    :max="150" 
-                    controls-position="right"
-                    class="custom-input"
-                  />
-                </el-form-item>
-              </div>
-
-              <!-- 尺码偏好 -->
-              <el-form-item label="尺码偏好" prop="sizePreference">
-                <el-select v-model="formData.sizePreference" placeholder="选择尺码" class="custom-select">
-                  <el-option label="XS/S (偏小)" value="偏小" />
-                  <el-option label="M (标准)" value="标准" />
-                  <el-option label="L/XL (偏大)" value="偏大" />
-                  <el-option label="宽松款" value="宽松" />
-                  <el-option label="修身款" value="修身" />
-                  <el-option label="紧身款" value="紧身" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 身材类型 -->
-              <el-form-item label="身材类型" prop="bodyType" required>
-                <el-select v-model="formData.bodyType" placeholder="请选择身材类型" class="custom-select">
-                  <el-option label="梨型身材" value="梨型身材" />
-                  <el-option label="苹果型身材" value="苹果型身材" />
-                  <el-option label="沙漏型身材" value="沙漏型身材" />
-                  <el-option label="矩形身材" value="矩形身材" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 温度输入 -->
-              <el-form-item label="温度(℃)" prop="temperature" required>
-                <div class="temperature-input">
-                  <el-input-number 
-                    v-model="formData.temperature" 
-                    :min="-20" 
-                    :max="40" 
-                    controls-position="right"
-                    class="custom-input temp-number"
-                  />
-                  <span class="temp-unit">°C</span>
-                </div>
-                <div class="temp-tips" v-if="formData.temperature !== null">
-                  <span class="temp-tag" :class="getTempTagType(formData.temperature)">
-                    {{ getTempAdvice(formData.temperature) }}
-                  </span>
-                </div>
-              </el-form-item>
-
-              <!-- 性别选择 -->
-              <el-form-item label="性别" prop="gender">
-                <el-radio-group v-model="formData.gender" class="luxury-radio">
-                  <el-radio label="女性">F</el-radio>
-                  <el-radio label="男性">M</el-radio>
-                </el-radio-group>
-              </el-form-item>
-
-              <!-- 风格偏好 -->
-              <el-form-item label="风格偏好">
-                <el-select v-model="formData.stylePreference" placeholder="选择风格偏好" class="custom-select">
-                  <el-option label="简约风" value="简约风" />
-                  <el-option label="通勤风" value="通勤风" />
-                  <el-option label="甜美风" value="甜美风" />
-                  <el-option label="复古风" value="复古风" />
-                  <el-option label="运动风" value="运动风" />
-                  <el-option label="中性风" value="中性风" />
-                  <el-option label="优雅风" value="优雅风" />
-                  <el-option label="波西米亚风" value="波西米亚风" />
-                  <el-option label="街头潮流风" value="街头潮流风" />
-                  <el-option label="极简主义风" value="极简主义风" />
-                  <el-option label="学院风" value="学院风" />
-                  <el-option label="法式浪漫风" value="法式浪漫风" />
-                  <el-option label="北欧冷淡风" value="北欧冷淡风" />
-                  <el-option label="日系森女风" value="日系森女风" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 预算范围 -->
-              <el-form-item label="预算范围">
-                <el-select v-model="formData.budget" placeholder="选择预算范围" class="custom-select">
-                  <el-option label="平价（300元以下）" value="平价" />
-                  <el-option label="中等（300-1000元）" value="中等" />
-                  <el-option label="轻奢（1000-3000元）" value="轻奢" />
-                  <el-option label="高端（3000元以上）" value="高端" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 提交按钮 -->
-              <div class="actions">
-                <button class="primary-btn" @click.prevent="getRecommendation" :disabled="loading">
-                  <span v-if="!loading">GENERATE STYLE</span>
-                  <span v-else><i class="el-icon-loading"></i> ANALYZING</span>
-                </button>
-                <button class="reset-btn" @click.prevent="resetForm">RESET</button>
-              </div>
-            </el-form>
-          </div>
-        </div>
-
-        <div class="display-panel">
-  <div class="panel-inner result-area">
-    <div v-if="loading" class="loader-state">
-      <div class="line-loader"></div>
-      <p>正在为您构思最佳方案...</p>
-    </div>
-
-    <div v-else-if="recommendResult" class="result-view animate-fade-in">
-      <div class="result-header">
-        <div class="status-indicator">PROPOSAL READY</div>
-        <h2> AI 穿搭推荐</h2>
-      </div>
-
-      <div class="recommendation-section">
-        <div class="label"> 推荐方案</div>
-        <div class="content-text">{{ recommendResult.recommendation }}</div>
-      </div>
-
-      <div class="items-grid" v-if="recommendResult.items && recommendResult.items.length > 0">
-  <div class="label"><i class="el-icon-picture"></i> 匹配单品图</div>
-  <div class="item.material">
-    <div v-for="(item, index) in recommendResult.items" :key="index" class="outfit-item">
-      <el-image 
-        :src="baseUrl + item.material" 
-        fit="cover" 
-        class="item-img"
-        :preview-src-list="[baseUrl + item.material]">
-        <div slot="error" class="image-slot">
-          <i class="el-icon-picture-outline"></i>
-        </div>
-      </el-image>
-      <div class="item-info">
-        <span class="item-name">{{ item.name }}</span>
-        <span class="item-tag">{{ item.color }}{{ item.type }}</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-      <div class="logic-box">
-        <div class="label"> 推荐理由</div>
-        <p>{{ recommendResult.reason }}</p>
-      </div>
-
-      <div class="details-grid">
-        <div class="detail-item">
-          <div class="label"><i class="el-icon-collection-tag"></i> 搭配细节</div>
-          <p>{{ recommendResult.styleTips }}</p>
-        </div>
-        <div class="detail-item">
-          <div class="label"><i class="el-icon-wind-power"></i> 气候适配</div>
-          <p>{{ recommendResult.temperatureAdvice }}</p>
-        </div>
-      </div>
-
-
-<div class="items-showcase-section" v-if="recommendResult.items && recommendResult.items.length > 0">
-        <div class="label"><i class="el-icon-picture"></i> WARDROBE MATCH / 匹配衣橱资源</div>
-        
-        <div class="item.material">
-          <div v-for="(item, index) in recommendResult.items" :key="index" class="cloth-card">
-            <el-image 
-              :src="baseUrl + item.material" 
-              fit="contain" 
-              class="cloth-img"
-              :preview-src-list="[baseUrl + item.material]">
-              <div slot="error" class="image-slot">
-                <i class="el-icon-picture-outline"></i>
-              </div>
-            </el-image>
-            
-            <div class="cloth-info">
-              <span class="cloth-name">{{ item.name }}</span>
-              <span class="cloth-tag">{{ item.color }} {{ item.type }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <div v-else class="placeholder-state">
-      <div class="mouse-container">
-        <div class="mouse">
-          <div class="mouse-wheel"></div>
-        </div>
-      </div>
-      
-      <div class="style-quote">
-        "Style is a way to say who you are without having to speak."
-      </div>
-      
-      <h3 class="inspire-title">开启您的今日穿搭灵感之旅</h3>
-      <p class="inspire-desc">请在左侧填写信息，AI 将为您智能匹配衣橱资源</p>
-    </div>
-  </div>
-</div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <template>
   <div class="luxury-container">
@@ -292,27 +19,13 @@
             <el-form ref="form" :model="formData" label-position="top">
               <el-form-item label="场合" prop="occasion" required>
                 <el-select v-model="formData.occasion" placeholder="请选择场合" class="custom-select">
-                  <el-option label="日常办公" value="日常办公" />
-                  <el-option label="旅游出行" value="旅游出行" />
-                  <el-option label="家庭聚会" value="家庭聚会" />
-                  <el-option label="毕业典礼" value="毕业典礼" />
-                  <el-option label="生日派对" value="生日派对" />
-                  <el-option label="商务会议" value="商务会议" />
-                  <el-option label="朋友聚会" value="朋友聚会" />
-                  <el-option label="约会" value="约会" />
-                  <el-option label="婚礼宾客" value="婚礼宾客" />
-                  <el-option label="面试场合" value="面试场合" />
-                  <el-option label="运动健身" value="运动健身" />
-                  <el-option label="逛街购物" value="逛街购物" />
-                  <el-option label="艺术展览" value="艺术展览" />
-                  <el-option label="音乐会/剧院" value="音乐会/剧院" />
-                  <el-option label="海边度假" value="海边度假" />
-                  <el-option label="滑雪运动" value="滑雪运动" />
-                  <el-option label="户外徒步" value="户外徒步" />
-                  <el-option label="公司年会" value="公司年会" />
-                  <el-option label="商务晚宴" value="商务晚宴" />
-                  <el-option label="产品发布会" value="产品发布会" />
-                </el-select>
+  <el-option 
+    v-for="item in occasionOptions" 
+    :key="item.configId" 
+    :label="item.configName" 
+    :value="item.configName" 
+  />
+</el-select>
               </el-form-item>
 
               <el-form-item label="年龄" prop="age" required>
@@ -392,22 +105,14 @@
               </el-form-item>
 
               <el-form-item label="风格偏好">
-                <el-select v-model="formData.stylePreference" placeholder="选择风格偏好" class="custom-select">
-                  <el-option label="简约风" value="简约风" />
-                  <el-option label="通勤风" value="通勤风" />
-                  <el-option label="甜美风" value="甜美风" />
-                  <el-option label="复古风" value="复古风" />
-                  <el-option label="运动风" value="运动风" />
-                  <el-option label="中性风" value="中性风" />
-                  <el-option label="优雅风" value="优雅风" />
-                  <el-option label="波西米亚风" value="波西米亚风" />
-                  <el-option label="街头潮流风" value="街头潮流风" />
-                  <el-option label="极简主义风" value="极简主义风" />
-                  <el-option label="学院风" value="学院风" />
-                  <el-option label="法式浪漫风" value="法式浪漫风" />
-                  <el-option label="北欧冷淡风" value="北欧冷淡风" />
-                  <el-option label="日系森女风" value="日系森女风" />
-                </el-select>
+              <el-select v-model="formData.stylePreference" placeholder="选择风格偏好" class="custom-select">
+  <el-option 
+    v-for="item in styleOptions" 
+    :key="item.configId" 
+    :label="item.configName" 
+    :value="item.configName" 
+  />
+</el-select>
               </el-form-item>
 
               <el-form-item label="预算范围">
@@ -1026,6 +731,7 @@ $border-light: #f0f0f0;
 
 <script>
 import request from '@/utils/request'
+import { listConfigs } from "@/api/outfit/outfit"
 
 export default {
   name: 'LuxuryRecommend',
@@ -1033,6 +739,7 @@ export default {
     return {
       loading: false,
       baseUrl: process.env.VUE_APP_BASE_API,
+      allConfigs: [],
       formData: {
         occasion: '商务晚宴',
         age: 25,
@@ -1048,7 +755,37 @@ export default {
       recommendResult: null
     }
   },
+  computed: {
+    // 自动过滤出后端返回的“场合”列表
+    occasionOptions() {
+      return this.allConfigs.filter(item => item.configType === 'occasion');
+    },
+    // 自动过滤出后端返回的“风格”列表
+   styleOptions() {
+  console.log("=== 开始过滤风格列表 ===");
+  console.log("所有原始数据：", this.allConfigs);
+  const result = this.allConfigs.filter(item => item.configType === 'style');
+  console.log("过滤后的结果：", result);
+  return result;
+},
+    // 自动过滤出后端返回的“身材”列表
+    bodyTypeOptions() {
+      return this.allConfigs.filter(item => itemconfigType === 'body_type');
+    }
+  },created() {
+    this.getConfigs();
+  },
   methods: {
+  getConfigs() {
+  listConfigs().then(res => {
+    // 确保 res.code 是 200 才赋值
+    if (res.code === 200) {
+      this.allConfigs = res.data;
+      // 强制更新视图（如果还是不显示，取消下面这行的注释试试）
+      // this.$forceUpdate(); 
+    }
+  });
+},
     async getRecommendation() {
       if (!this.validateForm()) {
         return

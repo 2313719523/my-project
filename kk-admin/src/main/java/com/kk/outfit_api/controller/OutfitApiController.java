@@ -1,5 +1,9 @@
 package com.kk.outfit_api.controller;
 
+import com.kk.common.core.domain.AjaxResult;
+import com.kk.outfit.service.IOutfitService;
+import com.kk.system.domain.OutfitConfig;
+import com.kk.system.mapper.OutfitConfigMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +20,10 @@ public class OutfitApiController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private IOutfitService outfitService;
+    @Autowired
+    private OutfitConfigMapper outfitConfigMapper;
 
     // ==================== 帖子相关接口 ====================
 
@@ -367,5 +375,18 @@ public class OutfitApiController {
         result.put("msg", "查询成功");
         result.put("data", user);
         return result;
+    }
+    @GetMapping("/statistics")
+    public AjaxResult getStatistics() {
+        // 使用注入的 outfitService 调用方法
+        return AjaxResult.success(outfitService.selectOutfitStatistics());
+    }
+
+    /**
+     * 获取所有穿搭配置（用于下拉框）
+     */
+    @GetMapping("/configs")
+    public AjaxResult getAllConfigs() {
+        return AjaxResult.success(outfitConfigMapper.selectOutfitConfigList(new OutfitConfig()));
     }
 }

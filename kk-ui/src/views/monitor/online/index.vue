@@ -4,25 +4,25 @@
       <el-col :span="6">
         <div class="glass-card stat-item">
           <div class="stat-label">当前活跃用户</div>
-          <div class="stat-value">{{ total }} <span class="unit">人</span></div>
+          <div class="stat-value">{{ stats.activeUserCount }} <span class="unit">人</span></div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="glass-card stat-item">
           <div class="stat-label">今日方案发布量</div>
-          <div class="stat-value">128 <span class="unit">篇</span></div>
+          <div class="stat-value">{{ stats.todayPostCount }} <span class="unit">篇</span></div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="glass-card stat-item">
           <div class="stat-label">热门风格排行</div>
-          <div class="stat-value">多巴胺风 <i class="el-icon-top"></i></div>
+          <div class="stat-value">{{ stats.hotStyle || '暂无' }} <i class="el-icon-top"></i></div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="glass-card stat-item">
           <div class="stat-label">违规内容预警</div>
-          <div class="stat-value warning">3 <span class="unit">条</span></div>
+          <div class="stat-value warning">{{ stats.auditWarningCount }} <span class="unit">条</span></div>
         </div>
       </el-col>
     </el-row>
@@ -46,7 +46,6 @@
             <span class="user-name-tag">{{ scope.row.userName }}</span>
           </template>
         </el-table-column>
-        <!-- <el-table-column label="所属组织" align="center" prop="deptName" /> -->
         <el-table-column label="最近活跃地点" align="center" prop="loginLocation" />
         <el-table-column label="发布终端" align="center" prop="os" />
         <el-table-column label="活跃时间" align="center" prop="loginTime" width="180">
@@ -80,7 +79,9 @@
 </template>
 
 <script>
+// 做了加法：同时引入在线列表API和你的穿搭统计API
 import { list, forceLogout } from "@/api/monitor/online"
+import { getOutfitStatistics } from "@/api/outfit/outfit" 
 
 export default {
   name: "OutfitMonitor",
@@ -93,13 +94,27 @@ export default {
       pageSize: 10,
       queryParams: {
         userName: undefined
+      },
+      // 做了加法：初始化统计数据对象
+      stats: {
+        activeUserCount: 0,
+        todayPostCount: 0,
+        hotStyle: "加载中...",
+        auditWarningCount: 0
       }
     }
   },
   created() {
-    this.getList()
+    this.getList();
+    this.getDashboardData(); // 做了加法：进入页面就加载统计
   },
   methods: {
+    // 做了加法：调用后端统计接口
+    getDashboardData() {
+      getOutfitStatistics().then(response => {
+        this.stats = response.data;
+      });
+    },
     getList() {
       this.loading = true
       list(this.queryParams).then(response => {
@@ -111,24 +126,24 @@ export default {
     handleQuery() {
       this.pageNum = 1
       this.getList()
+      this.getDashboardData() // 查询时同步刷新卡片
     },
     resetQuery() {
       this.resetForm("queryForm")
       this.handleQuery()
     },
-    // 模拟审核内容弹窗
-   handleAudit(row) {
-  // row.username 是你在在线用户列表里拿到的用户名
-  this.$router.push({
-    path: '/outfit/audit',
-    query: { userName: row.username } 
-  });
-},
+    handleAudit(row) {
+      this.$router.push({
+        path: '/outfit/audit',
+        query: { userName: row.userName } 
+      });
+    },
     handleForceLogout(row) {
       this.$modal.confirm('检测到异常活跃或违规行为，是否强退用户 "' + row.userName + '"？').then(function() {
         return forceLogout(row.tokenId)
       }).then(() => {
         this.getList()
+        this.getDashboardData()
         this.$modal.msgSuccess("已将其强制下线并记录违规日志")
       }).catch(() => {})
     }
@@ -137,6 +152,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+// 样式保持你的毛玻璃高亮设计
 .outfit-monitor-container {
   padding: 20px;
   background-color: #f8f9fa;

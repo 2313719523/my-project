@@ -2,6 +2,7 @@ package com.kk.outfit.service;
 
 import java.util.List;
 import com.kk.outfit.domain.Outfit;
+import com.kk.system.domain.vo.OutfitStatVo;
 
 /**
  * 穿搭主Service接口
@@ -58,4 +59,5 @@ public interface IOutfitService
      * @return 结果
      */
     public int deleteOutfitByOutfitId(Long outfitId);
+    public OutfitStatVo selectOutfitStatistics();
 }

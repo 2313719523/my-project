@@ -31,6 +31,20 @@
         </where>
         order by create_time desc
     </select>
+    <select id="selectOutfitStatistics" resultType="com.kk.system.domain.vo.OutfitStatVo">
+        SELECT
+            /* 1. 活跃用户：查询系统用户表总数 */
+                (SELECT COUNT(*) FROM sys_user WHERE del_flag = '0') as activeUserCount,
+
+            /* 2. 今日方案发布量：根据你的 create_time 统计 */
+                (SELECT COUNT(*) FROM outfit_post WHERE TO_DAYS(create_time) = TO_DAYS(NOW())) as todayPostCount,
+
+            /* 3. 热门风格排行：统计你表里的 tags 字段出现最多的词 */
+                (SELECT tags FROM outfit_post WHERE tags IS NOT NULL AND tags != '' GROUP BY tags ORDER BY COUNT(*) DESC LIMIT 1) as hotStyle,
+
+            /* 4. 违规内容预警：统计 status 为 '2' 的记录 */
+            (SELECT COUNT(*) FROM outfit_post WHERE status = '2') as auditWarningCount
+    </select>
 
     <update id="updateOutfitPostStatus" parameterType="com.kk.system.domain.OutfitPost">
         update outfit_post

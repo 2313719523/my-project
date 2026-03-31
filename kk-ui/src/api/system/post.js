@@ -42,3 +42,10 @@ export function delPost(postId) {
     method: 'delete'
   })
 }
+// 获取首页看板统计数据
+export function getOutfitStatistics() {
+  return request({
+    url: '/system/post/statistics',
+    method: 'get'
+  })
+}

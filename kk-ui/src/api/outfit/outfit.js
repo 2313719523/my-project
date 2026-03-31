@@ -160,3 +160,12 @@ export function addViewCount(outfitId) {
     method: 'put'
   })
 }
+
+
+// 获取所有穿搭配置（场合、风格等）
+export function listConfigs() {
+  return request({
+    url: '/outfit-api/configs',
+    method: 'get'
+  })
+}

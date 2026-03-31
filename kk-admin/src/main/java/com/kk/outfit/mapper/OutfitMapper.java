@@ -2,6 +2,7 @@ package com.kk.outfit.mapper;
 
 import java.util.List;
 import com.kk.outfit.domain.Outfit;
+import com.kk.system.domain.vo.OutfitStatVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 
@@ -63,4 +64,6 @@ public interface OutfitMapper
      * @return 结果
      */
     public int deleteOutfitByOutfitIds(Long[] outfitIds);
+
+    OutfitStatVo selectOutfitStatistics();
 }
