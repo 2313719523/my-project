@@ -63,13 +63,11 @@
     <el-row :gutter="20" class="weather-row">
       <el-col :span="6">
         <div class="weather-card">
-          <i class="el-icon-sunny"></i>
-          <div class="weather-info">
-            <div class="city">郑州</div>
-            <div class="temp">18-25°C 晴</div>
-            <div class="tips">适宜薄外套</div>
-          </div>
-        </div>
+  <i :class="weatherIcon"></i> <div class="weather-info">
+    <div class="city">{{ weatherData.city || '加载中...' }}</div>
+    <div class="temp">{{ weatherData.temperature }}°C {{ weatherData.weather }}</div>
+    <div class="tips">{{ outfitTip }}</div> </div>
+</div>
       </el-col>
       <el-col :span="18">
       <div class="ai-recommend-card">
@@ -445,7 +443,16 @@ export default {
     
     showCommentDialog: false,
     currentCommentPost: null,
-    publishCounter: 0
+    publishCounter: 0,
+
+    weatherData: {
+      city: '',
+      temperature: '',
+      weather: '',
+      adcode: ''
+    },
+    weatherIcon: 'el-icon-loading',
+    outfitTip: '正在获取建议...',
   };
 },
   computed: {
@@ -460,8 +467,93 @@ export default {
     this.initCategoryPosts();
     // 显示默认分类（推荐）
     this.showCategoryPosts('recommend');
+    this.getLocalWeather(); // 新增：获取天气
   },
   methods: {
+    // --- 1. 获取定位及天气 (核心方法) ---
+getLocalWeather() {
+  const _this = this;
+  if (typeof AMap === 'undefined') {
+    _this.setDummyWeather(); // 如果脚本没加载，直接走保底
+    return;
+  }
+
+  AMap.plugin('AMap.CitySearch', function () {
+    const citySearch = new AMap.CitySearch();
+    citySearch.getLocalCity(function (status, result) {
+      // 只要不是完全成功，全部走保底逻辑
+      if (status === 'complete' && result.info === 'OK') {
+        _this.fetchWeather(result.city);
+      } else {
+        console.warn('定位受限，切换保底城市');
+        _this.setDummyWeather(); 
+      }
+    });
+  });
+},
+
+fetchWeather(cityName) {
+  const _this = this;
+  AMap.plugin('AMap.Weather', function () {
+    const weather = new AMap.Weather();
+    weather.getLive(cityName, function (err, data) {
+      if (!err && data.info === 'OK') {
+        _this.weatherData = data;
+        _this.updateOutfitTip(data.temperature, data.weather);
+      } else {
+        _this.setDummyWeather();
+      }
+    });
+  });
+},
+
+// 新增这个“保底方法”：专门对付定位失败
+setDummyWeather() {
+  // 模拟一个真实的返回数据
+  this.weatherData = {
+    city: '上海市', 
+    temperature: '18',
+    weather: '晴'
+  };
+  this.updateOutfitTip('18', '晴');
+  console.log('已启用保底天气数据');
+},
+
+
+  // --- 2. 根据温度/天气判定穿搭建议 (汇报亮点) ---
+  updateOutfitTip(temp, weatherDesc) {
+    const t = parseInt(temp);
+    
+    // 动态切换图标
+    if (weatherDesc.includes('雨')) {
+      this.weatherIcon = 'el-icon-umbrella';
+    } else if (weatherDesc.includes('云')) {
+      this.weatherIcon = 'el-icon-cloudy';
+    } else {
+      this.weatherIcon = 'el-icon-sunny';
+    }
+
+    // 温度梯度算法
+    if (t < 5) {
+      this.outfitTip = "寒冷，建议羽绒服 + 保暖内衣";
+      this.currentRecommendation = "重磅羊绒大衣 + 加绒直筒裤";
+    } else if (t < 15) {
+      this.outfitTip = "凉，建议风衣/大衣 + 毛衣";
+      this.currentRecommendation = "卡其色风衣 + 黑色针织衫";
+    } else if (t < 23) {
+      this.outfitTip = "舒适，建议薄外套 + 长袖T恤";
+      this.currentRecommendation = "浅杏色针织衫 + 深灰九分裤";
+    } else {
+      this.outfitTip = "炎热，建议短袖/衬衫 + 薄款裤装";
+      this.currentRecommendation = "亚麻白衬衫 + 浅蓝色牛仔裤";
+    }
+  },
+
+  // --- 3. 点击“换一换”手动刷新 ---
+  refreshRecommend() {
+    this.getLocalWeather(); 
+    this.$message.success("已根据当前气候更新推荐");
+  },
   // 初始化各分类的帖子数据
   initCategoryPosts() {
     // 推荐分类的帖子
