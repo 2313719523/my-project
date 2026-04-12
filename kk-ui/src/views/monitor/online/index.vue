@@ -77,7 +77,7 @@
 
 <script>
 import { list, forceLogout } from "@/api/monitor/online"
-import { getOutfitStatistics } from "@/api/outfit/outfit" 
+//import { getOutfitStatistics } from "@/api/outfit/outfit" 
 
 export default {
   name: "OutfitMonitor",
@@ -110,9 +110,16 @@ export default {
   },
   methods: {
     getDashboardData() {
-      getOutfitStatistics().then(response => {
-        this.stats = response.data;
-      });
+      // getOutfitStatistics().then(response => {
+      //   this.stats = response.data;
+      // });
+
+      this.stats = {
+    activeUserCount: 12,
+    todayPostCount: 5,
+    hotStyle: "简约风",
+    auditWarningCount: 0
+  };
     },
     getList() {
       this.loading = true

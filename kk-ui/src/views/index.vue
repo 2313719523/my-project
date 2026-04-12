@@ -297,7 +297,7 @@
   :close-on-click-modal="false"
   @close="handlePublishClose"
 >
-  <el-form :model="publishForm" label-width="80px">
+  <el-form ref="publishForm" :model="publishForm" label-width="80px">
     <el-form-item label="标题" required>
       <el-input v-model="publishForm.title" placeholder="给穿搭起个标题吧"></el-input>
     </el-form-item>
@@ -311,29 +311,21 @@
       ></el-input>
     </el-form-item>
     
-    <el-form-item label="上传图片" required>
-      <el-upload
-        ref="upload"
-        action="#"
-        list-type="picture-card"
-        :auto-upload="false"
-        :limit="1"
-        :on-change="handleImageChange"
-        :on-remove="handleImageRemove"
-        :file-list="imageList"
-      >
-        <i slot="default" class="el-icon-plus"></i>
-        <div slot="file" slot-scope="{file}">
-          <img class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
-          <span class="el-upload-list__item-actions">
-            <span class="el-upload-list__item-delete" @click="handleRemove(file)">
-              <i class="el-icon-delete"></i>
-            </span>
-          </span>
-        </div>
-      </el-upload>
-      <div class="upload-tip">请上传1张图片，支持jpg、png格式</div>
-    </el-form-item>
+<el-form-item label="上传图片" required>
+  <el-upload
+    ref="upload"
+    :action="uploadImgUrl"
+    :headers="headers"
+    list-type="picture-card"
+    :auto-upload="true" 
+    :on-success="handleUploadSuccess"
+    :limit="1"
+    :file-list="imageList"
+  >
+    <i class="el-icon-plus"></i>
+  </el-upload>
+  <div class="upload-tip">支持任意 jpg/png 格式照片</div>
+</el-form-item>
     
     <el-form-item label="标签">
       <el-select v-model="publishForm.tags" multiple placeholder="选择穿搭风格" filterable allow-create>
@@ -351,7 +343,7 @@
   
   <span slot="footer">
     <el-button @click="showPublishDialog = false">取消</el-button>
-    <el-button type="primary" @click="publishPost" :disabled="!canPublish">发布</el-button>
+    <el-button type="primary" @click="handlePublish">发布</el-button>
   </span>
 </el-dialog>
 
@@ -378,7 +370,8 @@ import {
   addComment,
   getCurrentUser
 } from '@/api/outfitApi'
-
+import { addPost } from "@/api/outfit/post";
+import { getToken } from "@/utils/auth";
 export default {
   name: "Index",
   components: {
@@ -386,6 +379,12 @@ export default {
   },
  data() {
   return {
+    // 1. 自动获取你后端的上传接口地址
+    uploadImgUrl: process.env.VUE_APP_BASE_API + "/common/upload", 
+    // 2. 设置请求头，带上登录信息
+    headers: {
+      Authorization: "Bearer " + getToken(),
+    },
     searchKeyword: '',
     activeCategory: 'recommend',
     showPublishDialog: false,
@@ -470,6 +469,51 @@ export default {
     this.getLocalWeather(); // 新增：获取天气
   },
   methods: {
+// 1. 图片上传成功回调
+handleUploadSuccess(res) {
+  if (res.code === 200) {
+    // 将后端返回的图片URL存入表单
+    this.publishForm.image = res.url; 
+    this.$modal.msgSuccess("图片解析完成");
+  } else {
+    this.$modal.msgError("图片上传失败：" + res.msg);
+  }
+},
+
+// 2. 发布按钮逻辑（终极对齐版 - 严禁修改字段名）
+handlePublish() {
+  if (!this.publishForm.image) {
+    this.$modal.msgError("请等待图片上传解析完成");
+    return;
+  }
+
+  this.$refs.publishForm.validate(valid => {
+    if (valid !== false) {
+      // 这里的键名必须 100% 匹配 Outfit.java 的成员变量
+      const postData = {
+        title: this.publishForm.title,              // 匹配 title
+        description: this.publishForm.content,      // 匹配 description (对应数据库 content)
+        images: this.publishForm.image,             // 匹配 images (对应数据库 image)
+        styleTag: this.publishForm.tags ? this.publishForm.tags.join(',') : '', // 匹配 styleTag (对应数据库 tags)
+        status: "0",
+        userId: 1                                   // 确保有用户ID
+      };
+
+      console.log("正在发送诊断包，请核对字段名:", postData);
+
+      addPost(postData).then(response => {
+        if (response.code === 200) {
+          this.$modal.msgSuccess("发布成功");
+          this.showPublishDialog = false;
+          this.handlePublishClose();
+          setTimeout(() => { window.location.reload(); }, 1000);
+        } else {
+          this.$modal.msgError(response.msg);
+        }
+      });
+    }
+  });
+},
     // --- 1. 获取定位及天气 (核心方法) ---
 getLocalWeather() {
   const _this = this;
@@ -491,6 +535,7 @@ getLocalWeather() {
     });
   });
 },
+
 
 fetchWeather(cityName) {
   const _this = this;
@@ -518,7 +563,20 @@ setDummyWeather() {
   this.updateOutfitTip('18', '晴');
   console.log('已启用保底天气数据');
 },
-
+// 弹窗点击“确定”的方法
+handlePublishSubmit() {
+  this.$refs["publishForm"].validate(valid => {
+    if (valid) {
+      // 强制设置状态为 0 (待审核)
+      this.form.status = "0"; 
+      addPost(this.form).then(response => {
+        this.$modal.msgSuccess("发布成功，请耐心等待后台审核");
+        this.showPublishDialog = false;
+        this.getList(); // 刷新列表
+      });
+    }
+  });
+},
 
   // --- 2. 根据温度/天气判定穿搭建议 (汇报亮点) ---
   updateOutfitTip(temp, weatherDesc) {
