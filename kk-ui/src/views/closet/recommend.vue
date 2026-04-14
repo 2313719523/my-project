@@ -191,7 +191,7 @@
         </div>
       </div>
 
-      <div class="items-showcase-section" v-if="recommendResult.items && recommendResult.items.length > 0">
+      <!-- <div class="items-showcase-section" v-if="recommendResult.items && recommendResult.items.length > 0">
         <div class="label"><i class="el-icon-picture"></i> WARDROBE MATCH / 匹配衣橱资源</div>
         
         <div class="items-sorter" style="display: flex; gap: 15px; overflow-x: auto;">
@@ -212,7 +212,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <div v-else class="placeholder-state">
