@@ -11,6 +11,8 @@
         <result property="styleTag"    column="tags"    />
         <result property="status"      column="status"    />
         <result property="createTime"  column="create_time"    />
+        <result property="userName"    column="username"    />
+        <result property="avatar"      column="avatar"    />
     </resultMap>
 
     <insert id="insertOutfit" parameterType="Outfit" useGeneratedKeys="true" keyProperty="outfitId">
@@ -21,6 +23,8 @@
             <if test="images != null">image,</if>
             <if test="styleTag != null">tags,</if>
             <if test="userId != null">user_id,</if>
+            <if test="userName != null">username,</if>
+            <if test="avatar != null">avatar,</if>
             <if test="status != null">status,</if>
             create_time
         </trim>
@@ -30,17 +34,22 @@
             <if test="images != null">#{images},</if>
             <if test="styleTag != null">#{styleTag},</if>
             <if test="userId != null">#{userId},</if>
+            <if test="userName != null">#{userName},</if>
+            <if test="avatar != null">#{avatar},</if>
             <if test="status != null">#{status},</if>
             sysdate()
         </trim>
     </insert>
 
     <select id="selectOutfitList" parameterType="Outfit" resultMap="OutfitResult">
-        select id, title, content, image, tags, user_id, status, create_time
+        select
+        id, title, content, image, tags, user_id, username, avatar,
+        category, status, create_time
         from outfit_post
         <where>
             <if test="status != null and status != ''"> and status = #{status}</if>
             <if test="title != null and title != ''"> and title like concat('%', #{title}, '%')</if>
+            <if test="category != null and category != ''"> and category = #{category}</if>
         </where>
         order by create_time desc
     </select>

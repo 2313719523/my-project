@@ -26,12 +26,13 @@ public class OutfitController extends BaseController {
         return toAjax(outfitService.insertOutfit(outfit));
     }
 
+    // OutfitController.java 中的 recommend 方法
     @GetMapping("/recommend")
     public TableDataInfo recommend(Outfit outfit) {
-        startPage();
-        outfit.setStatus("1"); // 首页只查已通过的
+        startPage();                 // 开启分页
+        outfit.setStatus("1");       // 首页只查已通过的
         List<Outfit> list = outfitService.selectOutfitList(outfit);
-        return getDataTable(list);
+        return getDataTable(list);   // 返回分页数据
     }
 
     @GetMapping("/list")

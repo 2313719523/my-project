@@ -372,6 +372,7 @@ import {
 } from '@/api/outfitApi'
 import { addPost } from "@/api/outfit/post";
 import { getToken } from "@/utils/auth";
+import request from '@/utils/request';
 export default {
   name: "Index",
   components: {
@@ -379,6 +380,9 @@ export default {
   },
  data() {
   return {
+
+    pageNum: 1,      // 表示当前第几页
+    loading: false,  
     // 1. 自动获取你后端的上传接口地址
     uploadImgUrl: process.env.VUE_APP_BASE_API + "/common/upload", 
     // 2. 设置请求头，带上登录信息
@@ -462,19 +466,22 @@ export default {
     }
   },
   created() {
-    // 初始化所有分类的帖子数据
-    this.initCategoryPosts();
-    // 显示默认分类（推荐）
-    this.showCategoryPosts('recommend');
-    this.getLocalWeather(); // 新增：获取天气
-  },
+  this.loadMore();  
+  this.getLocalWeather();
+},
   methods: {
 // 1. 图片上传成功回调
 handleUploadSuccess(res) {
   if (res.code === 200) {
-    // 将后端返回的图片URL存入表单
-    this.publishForm.image = res.url; 
-    this.$modal.msgSuccess("图片解析完成");
+    let imageUrl = res.url;
+    if (imageUrl && imageUrl.includes('/profile/upload/')) {
+      const match = imageUrl.match(/\/profile\/upload\/[^?]+/);
+      if (match) {
+        imageUrl = match[0];
+      }
+    }
+    this.publishForm.image = imageUrl;
+    this.$modal.msgSuccess("图片上传完成");
   } else {
     this.$modal.msgError("图片上传失败：" + res.msg);
   }
@@ -489,17 +496,20 @@ handlePublish() {
 
   this.$refs.publishForm.validate(valid => {
     if (valid !== false) {
-      // 这里的键名必须 100% 匹配 Outfit.java 的成员变量
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      
       const postData = {
-        title: this.publishForm.title,              // 匹配 title
-        description: this.publishForm.content,      // 匹配 description (对应数据库 content)
-        images: this.publishForm.image,             // 匹配 images (对应数据库 image)
-        styleTag: this.publishForm.tags ? this.publishForm.tags.join(',') : '', // 匹配 styleTag (对应数据库 tags)
+        title: this.publishForm.title,
+        description: this.publishForm.description,
+        images: this.publishForm.image,
+        styleTag: this.publishForm.tags ? this.publishForm.tags.join(',') : '',
         status: "0",
-        userId: 1                                   // 确保有用户ID
+        userId: userInfo.userId || 1,
+        userName: userInfo.userName || this.$store.state.user.name || '用户',
+        avatar: userInfo.avatar || '/images/头像8.png'
       };
 
-      console.log("正在发送诊断包，请核对字段名:", postData);
+      console.log("正在发送诊断包:", postData);
 
       addPost(postData).then(response => {
         if (response.code === 200) {
@@ -1283,12 +1293,32 @@ handlePublishSubmit() {
     this.$message.success('搜索历史已清除');
   },
   
-  handleCategoryChange(tab) {
-    const category = tab.name;
-    this.activeCategory = category;
-    this.showCategoryPosts(category);
-    this.$message.success(`切换到${tab.label}分类`);
-  },
+handleCategoryChange(tab) {
+  const category = tab.name;
+  this.activeCategory = category;
+  
+  // 清空现有帖子
+  this.leftPosts = [];
+  this.centerPosts = [];
+  this.rightPosts = [];
+  
+  // 重置分页
+  this.pageNum = 1;
+  
+  // 重新加载
+  this.loadMore();
+  
+  // 显示提示
+  let label = '';
+  switch(category) {
+    case 'recommend': label = '推荐'; break;
+    case 'latest': label = '最新'; break;
+    case 'business': label = '通勤风'; break;
+    case 'casual': label = '休闲风'; break;
+    case 'sport': label = '运动风'; break;
+  }
+  this.$message.success(`切换到${label}分类`);
+},
   
  refreshRecommend() {
   // 获取当前天气（假设从weather-card获取）
@@ -1493,40 +1523,90 @@ getCurrentWeather() {
     this.$message.success('发布成功！');
   },
   
-  loadMore() {
-    this.loading = true;
-    setTimeout(() => {
-      const newPost = {
-        id: Date.now(),
-        image: '/images/温柔风.png',
-        title: '新穿搭' + (Math.random() * 100).toFixed(0),
-        tags: ['新潮', '时尚'],
-        avatar: '/images/头像10.png',
-        username: '新用户',
-        likes: Math.floor(Math.random() * 500),
-        comments: Math.floor(Math.random() * 100),
+loadMore() {
+  if (this.loading) return;
+  this.loading = true;
+  
+  // 根据当前分类映射后端需要的参数
+  let categoryParam = '';
+  if (this.activeCategory === 'recommend') {
+    categoryParam = '';  // 推荐：不传分类，显示所有
+  } else if (this.activeCategory === 'latest') {
+    categoryParam = '';  // 最新：按时间排序，后面加 orderBy
+  } else {
+    categoryParam = this.activeCategory;  // business, casual, sport
+  }
+  
+  request({
+    url: '/outfit/outfit/recommend',
+    method: 'get',
+    params: {
+      pageNum: this.pageNum,
+      pageSize: 10,
+      category: categoryParam  // 添加分类参数
+    }
+  }).then(res => {
+    console.log('后端返回数据：', res);
+    let posts = res.rows || [];
+    
+    // 如果是"最新"分类，按时间排序（后端已经按 create_time 排序了）
+    if (this.activeCategory === 'latest') {
+      posts = posts.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+    }
+    
+    if (posts.length > 0) {
+      const newPosts = posts.map(post => ({
+        id: post.outfitId,
+        image: post.images ? process.env.VUE_APP_BASE_API + post.images : '/images/通勤风简约.png',
+        title: post.title || '无标题',
+        description: post.description || '',
+        tags: post.styleTag ? post.styleTag.split(',') : [],
+        avatar: post.avatar || '/images/头像8.png',
+        username: post.userName || '用户' + (post.userId || ''),
+        likes: post.likeCount || 0,
+        comments: 0,
         isLiked: false,
         isCollected: false,
-        category: this.activeCategory,
+        multi: false,
         commentList: []
-      };
+      }));
       
-      const random = Math.floor(Math.random() * 3);
-      if (random === 0) {
-        this.categoryPosts[this.activeCategory].left.push(newPost);
-        this.leftPosts.push(newPost);
-      } else if (random === 1) {
-        this.categoryPosts[this.activeCategory].center.push(newPost);
-        this.centerPosts.push(newPost);
-      } else {
-        this.categoryPosts[this.activeCategory].right.push(newPost);
-        this.rightPosts.push(newPost);
-      }
-      
-      this.loading = false;
-      this.$message.success('加载成功');
-    }, 1000);
-  },
+      this.addPostsToColumns(newPosts);
+      this.pageNum++;
+    } else if (this.pageNum === 1) {
+      this.$message.info('暂无穿搭内容');
+    }
+    
+    this.loading = false;
+  }).catch(err => {
+    console.error('加载失败', err);
+    this.loading = false;
+    this.$message.error('加载失败，请检查网络');
+  });
+},
+
+// 保留这个（简单版本）
+addPostsToColumns(newPosts) {
+  let leftCount = this.leftPosts.length;
+  let centerCount = this.centerPosts.length;
+  let rightCount = this.rightPosts.length;
+  
+  newPosts.forEach(post => {
+    let total = leftCount + centerCount + rightCount;
+    if (total % 3 === 0) {
+      this.leftPosts.push(post);
+      leftCount++;
+    } else if (total % 3 === 1) {
+      this.centerPosts.push(post);
+      centerCount++;
+    } else {
+      this.rightPosts.push(post);
+      rightCount++;
+    }
+  });
+},
+
+
   
   goToDetail(item) {
     this.$router.push({
