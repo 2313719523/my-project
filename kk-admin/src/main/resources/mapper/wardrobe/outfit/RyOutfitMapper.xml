@@ -3,16 +3,21 @@
 <mapper namespace="com.kk.outfit.mapper.OutfitMapper">
 
     <resultMap type="Outfit" id="OutfitResult">
-        <result property="outfitId"    column="id"    />
-        <result property="userId"      column="user_id"    />
-        <result property="title"       column="title"    />
-        <result property="description" column="content"    />
-        <result property="images"      column="image"    />
-        <result property="styleTag"    column="tags"    />
-        <result property="status"      column="status"    />
-        <result property="createTime"  column="create_time"    />
-        <result property="userName"    column="username"    />
-        <result property="avatar"      column="avatar"    />
+        <result property="outfitId"     column="id"    />
+        <result property="userId"       column="user_id"    />
+        <result property="title"        column="title"    />
+        <result property="description"  column="content"    />
+        <result property="images"       column="image"    />
+        <result property="styleTag"     column="tags"    />
+        <result property="status"       column="status"    />
+        <result property="createTime"   column="create_time"    />
+        <result property="userName"     column="username"    />
+        <result property="avatar"       column="avatar"    />
+        <result property="viewCount"    column="view_count"    />
+        <result property="likeCount"    column="like_count"    />
+        <result property="collectCount" column="collect_count"    />
+        <result property="commentCount" column="comment_count"    />
+        <result property="category"     column="category"    />
     </resultMap>
 
     <insert id="insertOutfit" parameterType="Outfit" useGeneratedKeys="true" keyProperty="outfitId">
@@ -44,7 +49,7 @@
     <select id="selectOutfitList" parameterType="Outfit" resultMap="OutfitResult">
         select
         id, title, content, image, tags, user_id, username, avatar,
-        category, status, create_time
+        category, status, create_time, view_count, like_count, collect_count, comment_count
         from outfit_post
         <where>
             <if test="status != null and status != ''"> and status = #{status}</if>
@@ -52,5 +57,48 @@
             <if test="category != null and category != ''"> and category = #{category}</if>
         </where>
         order by create_time desc
+    </select>
+
+    <select id="selectOutfitByOutfitId" parameterType="Long" resultMap="OutfitResult">
+        select
+        id, title, content, image, tags, user_id, username, avatar,
+        category, status, create_time, view_count, like_count, collect_count, comment_count
+        from outfit_post
+        where id = #{outfitId}
+    </select>
+
+    <update id="updateOutfit" parameterType="Outfit">
+        update outfit_post
+        <set>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="description != null">content = #{description},</if>
+            <if test="images != null">image = #{images},</if>
+            <if test="styleTag != null">tags = #{styleTag},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            <if test="collectCount != null">collect_count = #{collectCount},</if>
+            <if test="commentCount != null">comment_count = #{commentCount},</if>
+        </set>
+        where id = #{outfitId}
+    </update>
+
+    <delete id="deleteOutfitByOutfitId" parameterType="Long">
+        delete from outfit_post where id = #{outfitId}
+    </delete>
+
+    <delete id="deleteOutfitByOutfitIds" parameterType="Long">
+        delete from outfit_post where id in 
+        <foreach collection="array" item="outfitId" open="(" separator="," close=")">
+            #{outfitId}
+        </foreach>
+    </delete>
+
+    <select id="selectOutfitStatistics" resultType="com.kk.system.domain.vo.OutfitStatVo">
+        select 
+            count(*) as totalCount,
+            sum(case when status = '1' then 1 else 0 end) as approvedCount,
+            sum(case when status = '0' then 1 else 0 end) as pendingCount
+        from outfit_post
     </select>
 </mapper>

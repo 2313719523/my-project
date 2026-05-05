@@ -370,6 +370,7 @@ import {
   addComment,
   getCurrentUser
 } from '@/api/outfitApi'
+import { likeOutfit, favoriteOutfit, addComment as addCommentApi } from '@/api/outfit/outfit'
 import { addPost } from "@/api/outfit/post";
 import { getToken } from "@/utils/auth";
 import request from '@/utils/request';
@@ -1380,23 +1381,41 @@ getCurrentWeather() {
 },
   
   toggleLike(item) {
-    item.isLiked = !item.isLiked;
-    if (item.isLiked) {
-      item.likes++;
-      this.$message.success('点赞成功');
-    } else {
-      item.likes--;
-      this.$message.info('已取消点赞');
-    }
+    const outfitId = item.id;
+    likeOutfit(outfitId).then(response => {
+      if (response.code === 200) {
+        item.isLiked = !item.isLiked;
+        if (item.isLiked) {
+          item.likes++;
+          this.$message.success('点赞成功');
+        } else {
+          item.likes--;
+          this.$message.info('已取消点赞');
+        }
+      } else {
+        this.$message.error(response.msg || '操作失败');
+      }
+    }).catch(() => {
+      this.$message.error('网络请求失败');
+    });
   },
   
   toggleCollect(item) {
-    item.isCollected = !item.isCollected;
-    if (item.isCollected) {
-      this.$message.success('收藏成功');
-    } else {
-      this.$message.info('已取消收藏');
-    }
+    const outfitId = item.id;
+    favoriteOutfit(outfitId).then(response => {
+      if (response.code === 200) {
+        item.isCollected = !item.isCollected;
+        if (item.isCollected) {
+          this.$message.success('收藏成功');
+        } else {
+          this.$message.info('已取消收藏');
+        }
+      } else {
+        this.$message.error(response.msg || '操作失败');
+      }
+    }).catch(() => {
+      this.$message.error('网络请求失败');
+    });
   },
   
   openCommentDialog(item) {
@@ -1564,9 +1583,9 @@ loadMore() {
         avatar: post.avatar || '/images/头像8.png',
         username: post.userName || '用户' + (post.userId || ''),
         likes: post.likeCount || 0,
-        comments: 0,
-        isLiked: false,
-        isCollected: false,
+        comments: post.commentCount || 0,
+        isLiked: post.liked || false,
+        isCollected: post.collected || false,
         multi: false,
         commentList: []
       }));

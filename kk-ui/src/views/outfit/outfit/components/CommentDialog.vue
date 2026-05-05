@@ -13,9 +13,9 @@
       <span class="post-title">{{ post.title }}</span>
     </div>
 
-    <!-- 评论列表 - 使用post.commentList -->
-    <div class="comment-list" v-if="post && post.commentList && post.commentList.length > 0">
-      <div v-for="comment in post.commentList" :key="comment.id" class="comment-item">
+    <!-- 评论列表 -->
+    <div class="comment-list" v-if="comments.length > 0">
+      <div v-for="comment in comments" :key="comment.id" class="comment-item">
         <el-avatar :src="comment.user.avatar" size="small"></el-avatar>
         <div class="comment-content">
           <div class="comment-header">
@@ -57,6 +57,8 @@
 </template>
 
 <script>
+import { addComment, listComment } from '@/api/outfit/outfit'
+
 export default {
   name: 'CommentDialog',
   props: {
@@ -75,7 +77,8 @@ export default {
     return {
       dialogVisible: false,
       newComment: '',
-      showEmoji: false
+      showEmoji: false,
+      comments: []
     }
   },
   watch: {
@@ -83,6 +86,9 @@ export default {
       handler(val) {
         console.log('visible changed:', val, '当前帖子:', this.post)
         this.dialogVisible = val
+        if (val && this.post && this.post.id) {
+          this.loadComments()
+        }
       },
       immediate: true
     },
@@ -94,7 +100,53 @@ export default {
       immediate: true
     }
   },
-  methods: {
+ methods: {
+    loadComments() {
+      if (!this.post || !this.post.id) return
+      
+      listComment(this.post.id).then(response => {
+        if (response.code === 200 && response.rows) {
+          this.comments = response.rows.map(comment => ({
+            id: comment.commentId,
+            user: {
+              name: comment.userName || '用户',
+              avatar: '/images/头像8.png'
+            },
+            content: comment.content,
+            time: comment.createTime ? this.formatTime(comment.createTime) : '刚刚',
+            likes: 0,
+            isLiked: false
+          }))
+          // 更新父组件的评论列表
+          if (this.post) {
+            this.$set(this.post, 'commentList', this.comments)
+          }
+        }
+      }).catch(() => {
+        console.error('加载评论失败')
+      })
+    },
+    
+    formatTime(timeStr) {
+      const date = new Date(timeStr)
+      const now = new Date()
+      const diff = now - date
+      
+      const minute = 60 * 1000
+      const hour = 60 * minute
+      const day = 24 * hour
+      
+      if (diff < minute) {
+        return '刚刚'
+      } else if (diff < hour) {
+        return `${Math.floor(diff / minute)}分钟前`
+      } else if (diff < day) {
+        return `${Math.floor(diff / hour)}小时前`
+      } else {
+        return `${date.getMonth() + 1}月${date.getDate()}日`
+      }
+    },
+    
     handleClose() {
       console.log('dialog closed')
       this.dialogVisible = false
@@ -113,37 +165,51 @@ export default {
         return
       }
       
-      // 创建新评论
-      const newComment = {
-        id: Date.now(),
-        user: {
-          name: '当前用户',
-          avatar: this.post.avatar || '/images/默认头像.png'
-        },
+      const commentData = {
+        outfitId: this.post.id,
         content: this.newComment,
-        time: '刚刚',
-        likes: 0,
-        isLiked: false
+        parentId: null
       }
       
-      // 确保commentList存在
-      if (!this.post.commentList) {
-        this.$set(this.post, 'commentList', [])
-      }
-      
-      // 添加新评论
-      this.post.commentList.unshift(newComment)
-      
-      // 更新评论数
-      if (this.post.comments !== undefined) {
-        this.post.comments++
-      }
-      
-      // 触发父组件的事件
-      this.$emit('add-comment', this.newComment)
-      
-      this.newComment = ''
-      this.$message.success('评论成功')
+      addComment(commentData).then(response => {
+        if (response.code === 200) {
+          // 创建新评论
+          const newComment = {
+            id: Date.now(),
+            user: {
+              name: '当前用户',
+              avatar: '/images/头像8.png'
+            },
+            content: this.newComment,
+            time: '刚刚',
+            likes: 0,
+            isLiked: false
+          }
+          
+          // 添加到本地评论列表
+          this.comments.unshift(newComment)
+          
+          // 更新父组件的评论列表
+          if (this.post) {
+            this.$set(this.post, 'commentList', this.comments)
+          }
+          
+          // 更新评论数
+          if (this.post && this.post.comments !== undefined) {
+            this.post.comments++
+          }
+          
+          // 触发父组件的事件
+          this.$emit('add-comment', this.newComment)
+          
+          this.newComment = ''
+          this.$message.success('评论成功')
+        } else {
+          this.$message.error(response.msg || '评论失败')
+        }
+      }).catch(() => {
+        this.$message.error('网络请求失败')
+      })
     },
     
     replyComment(comment) {

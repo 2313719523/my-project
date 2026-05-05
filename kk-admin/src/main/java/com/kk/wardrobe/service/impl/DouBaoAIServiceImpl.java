@@ -133,24 +133,19 @@ public class DouBaoAIServiceImpl implements AiRecommendService {
     private String getWardrobeImage(String type, String color) {
         String defaultPath = "/profile/upload/default.png";
         try {
-            // 提取颜色核心字
             String colorKey = (color != null && color.length() > 0) ? color.substring(0, 1) : "";
-
-            // 1. 第一级：精准匹配 (category + color)
+            // 1. 第一级：精准匹配 category + color
             String sql1 = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? AND color LIKE ? LIMIT 1";
             List<String> list1 = jdbcTemplate.queryForList(sql1, String.class, type, "%" + colorKey + "%");
             if (!list1.isEmpty()) return list1.get(0);
-
-            // 2. 第二级：降级匹配 (仅 category)
+            // 2. 第二级：降级匹配 仅 category
             String sql2 = "SELECT img_url FROM sys_wardrobe_item WHERE category = ? LIMIT 1";
             List<String> list2 = jdbcTemplate.queryForList(sql2, String.class, type);
             if (!list2.isEmpty()) return list2.get(0);
-
-            // 3. 第三级：保底模糊匹配 (name 包含 AI 给的关键词)
+            // 3. 第三级：保底模糊匹配 name 包含 AI 给的关键词
             String sql3 = "SELECT img_url FROM sys_wardrobe_item WHERE name LIKE ? LIMIT 1";
             List<String> list3 = jdbcTemplate.queryForList(sql3, String.class, "%" + type + "%");
             if (!list3.isEmpty()) return list3.get(0);
-
         } catch (Exception e) {
             log.error("匹配图片异常: {}", e.getMessage());
         }

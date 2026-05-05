@@ -2,10 +2,15 @@ package com.kk.outfit.service.impl;
 
 import java.util.List;
 import com.kk.common.utils.DateUtils;
+import com.kk.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.kk.outfit.mapper.OutfitMapper;
+import com.kk.outfit.mapper.LikeMapper;
+import com.kk.outfit.mapper.FavoriteMapper;
 import com.kk.outfit.domain.Outfit;
+import com.kk.outfit.domain.Like;
+import com.kk.outfit.domain.Favorite;
 import com.kk.outfit.service.IOutfitService;
 // 必须导入这个VO类，否则selectOutfitStatistics会报错
 import com.kk.system.domain.vo.OutfitStatVo;
@@ -18,6 +23,12 @@ public class OutfitServiceImpl implements IOutfitService
 {
     @Autowired
     private OutfitMapper outfitMapper;
+    
+    @Autowired
+    private LikeMapper likeMapper;
+    
+    @Autowired
+    private FavoriteMapper favoriteMapper;
 
     /**
      * 实现首页看板统计数据接口
@@ -44,7 +55,20 @@ public class OutfitServiceImpl implements IOutfitService
     @Override
     public List<Outfit> selectOutfitList(Outfit outfit)
     {
-        return outfitMapper.selectOutfitList(outfit);
+        List<Outfit> list = outfitMapper.selectOutfitList(outfit);
+        Long userId = SecurityUtils.getUserId();
+        
+        for (Outfit item : list) {
+            // 设置点赞状态
+            Like like = likeMapper.selectLikeByUserIdAndOutfitId(userId, item.getOutfitId());
+            item.setLiked(like != null);
+            
+            // 设置收藏状态
+            Favorite favorite = favoriteMapper.selectFavoriteByUserIdAndOutfitId(userId, item.getOutfitId());
+            item.setCollected(favorite != null);
+        }
+        
+        return list;
     }
 
     /**

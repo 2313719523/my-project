@@ -1,4 +1,4 @@
-//package com.kk.quartz.config;
+package com.kk.quartz.config;//package com.kk.quartz.config;
 //
 //import org.springframework.context.annotation.Bean;
 //import org.springframework.context.annotation.Configuration;

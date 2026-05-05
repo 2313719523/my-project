@@ -17,6 +17,7 @@ public class Outfit extends BaseEntity {
     private Long viewCount;
     private Long likeCount;    // 点赞数（必须保留）
     private Long collectCount; // 收藏数（必须保留）
+    private Long commentCount; // 评论数
     private String status;     // 状态
     private String delFlag;
     private String category;
@@ -24,6 +25,10 @@ public class Outfit extends BaseEntity {
     // 新增字段：用户名和头像
     private String userName;
     private String avatar;
+    
+    // 当前用户是否已点赞/收藏
+    private Boolean liked;
+    private Boolean collected;
 
     // ========== 原有 getter/setter ==========
     public void setOutfitId(Long outfitId) { this.outfitId = outfitId; }
@@ -50,6 +55,9 @@ public class Outfit extends BaseEntity {
     public void setCollectCount(Long collectCount) { this.collectCount = collectCount; }
     public Long getCollectCount() { return collectCount; }
 
+    public Long getCommentCount() { return commentCount; }
+    public void setCommentCount(Long commentCount) { this.commentCount = commentCount; }
+
     public void setStatus(String status) { this.status = status; }
     public String getStatus() { return status; }
 
@@ -67,6 +75,11 @@ public class Outfit extends BaseEntity {
     public String getAvatar() { return avatar; }
     public void setCategory(String category) { this.category = category; }
     public String getCategory() { return category; }
+    
+    public Boolean getLiked() { return liked; }
+    public void setLiked(Boolean liked) { this.liked = liked; }
+    public Boolean getCollected() { return collected; }
+    public void setCollected(Boolean collected) { this.collected = collected; }
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
